@@ -28,12 +28,36 @@ export default function Home() {
 
   useEffect(() => {
     checkUser();
-  }, []);
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        router.push('/dashboard');
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        router.push('/');
+      }
+    });
+
+    // Check for hash fragment in URL (auth callback)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    if (hashParams.get('access_token')) {
+      router.push('/dashboard');
+    }
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   const checkUser = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
+      if (session?.user) {
+        router.push('/dashboard');
+      }
     } catch (error) {
       console.error('Error checking user:', error);
       setError('Failed to check authentication status');
@@ -62,7 +86,6 @@ export default function Home() {
     } catch (error: any) {
       console.error('Error logging in with Google:', error);
       setError(error.message || 'Failed to login with Google');
-      // Show email login form as fallback
       setShowLoginForm(true);
     }
   };
