@@ -6,13 +6,25 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      flowType: 'pkce',
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true
+    }
+  }
 );
 
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showLoginForm, setShowLoginForm] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -24,23 +36,75 @@ export default function Home() {
       setUser(session?.user || null);
     } catch (error) {
       console.error('Error checking user:', error);
+      setError('Failed to check authentication status');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogin = async () => {
+  const handleGoogleLogin = async () => {
     try {
+      setError(null);
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: 'https://secureviewart.netlify.app/dashboard',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error: any) {
+      console.error('Error logging in with Google:', error);
+      setError(error.message || 'Failed to login with Google');
+      // Show email login form as fallback
+      setShowLoginForm(true);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setError(null);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Error logging in with email:', error);
+      setError(error.message);
+    }
+  };
+
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setError(null);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
       if (error) throw error;
-    } catch (error) {
-      console.error('Error logging in:', error);
+
+      setError('Please check your email for verification link');
+    } catch (error: any) {
+      console.error('Error signing up:', error);
+      setError(error.message);
     }
   };
 
@@ -71,7 +135,7 @@ export default function Home() {
                 </button>
               ) : (
                 <button
-                  onClick={handleLogin}
+                  onClick={handleGoogleLogin}
                   className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors"
                 >
                   Sign In
@@ -88,6 +152,64 @@ export default function Home() {
         </div>
       </nav>
 
+      {/* Auth Modal */}
+      {showLoginForm && !user && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-xl font-semibold mb-4">Sign In / Sign Up</h3>
+            {error && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                />
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  type="submit"
+                  className="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEmailSignUp}
+                  className="flex-1 bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  Sign Up
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLoginForm(false)}
+                className="w-full text-gray-600 text-sm"
+              >
+                Cancel
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center">
@@ -99,20 +221,27 @@ export default function Home() {
           </p>
           <div className="flex justify-center gap-4">
             {!user && (
-              <button
-                onClick={handleLogin}
-                className="bg-primary text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-primary/90 transition-colors"
-              >
-                Get Started
-              </button>
+              <>
+                <button
+                  onClick={handleGoogleLogin}
+                  className="bg-primary text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-primary/90 transition-colors"
+                >
+                  Sign in with Google
+                </button>
+                <button
+                  onClick={() => setShowLoginForm(true)}
+                  className="bg-white text-gray-700 px-8 py-3 rounded-lg text-lg font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  Email Sign In
+                </button>
+              </>
             )}
-            <button
-              onClick={() => router.push('/user')}
-              className="bg-white text-gray-700 px-8 py-3 rounded-lg text-lg font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              Enter Access Code
-            </button>
           </div>
+          {error && (
+            <div className="mt-4 text-red-600">
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Features Section */}
