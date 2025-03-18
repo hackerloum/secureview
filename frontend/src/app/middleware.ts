@@ -6,22 +6,27 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const supabase = createMiddlewareClient({ req, res });
 
+  // Refresh session if expired - required for Server Components
+  await supabase.auth.getSession();
+
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
+  // Allow access to auth callback URL
+  if (req.nextUrl.pathname.startsWith('/auth/callback')) {
+    return res;
+  }
+
   // If there's no session and the user is trying to access the dashboard
   if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = '/';
-    redirectUrl.searchParams.set(`redirectedFrom`, req.nextUrl.pathname);
+    const redirectUrl = new URL('/', req.url);
     return NextResponse.redirect(redirectUrl);
   }
 
   // If there's a session and the user is on the home page, redirect to dashboard
   if (session && req.nextUrl.pathname === '/') {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = '/dashboard';
+    const redirectUrl = new URL('/dashboard', req.url);
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -29,5 +34,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*'],
+  matcher: ['/', '/dashboard/:path*', '/auth/callback'],
 }; 
