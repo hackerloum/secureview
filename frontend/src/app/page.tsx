@@ -27,10 +27,47 @@ export default function Home() {
   const [showLoginForm, setShowLoginForm] = useState(false);
 
   useEffect(() => {
-    checkUser();
+    const handleAuthStateChange = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          console.log('Session found:', session.user);
+          setUser(session.user);
+          router.push('/dashboard');
+          return;
+        }
 
-    // Listen for auth state changes
+        // Check URL for auth callback
+        if (window.location.hash) {
+          const params = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = params.get('access_token');
+          if (accessToken) {
+            console.log('Access token found in URL');
+            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(accessToken);
+            if (authUser) {
+              console.log('User authenticated:', authUser);
+              setUser(authUser);
+              router.push('/dashboard');
+              return;
+            }
+            if (authError) {
+              console.error('Auth error:', authError);
+              setError(authError.message);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Auth state change error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    handleAuthStateChange();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
         router.push('/dashboard');
@@ -40,39 +77,20 @@ export default function Home() {
       }
     });
 
-    // Check for hash fragment in URL (auth callback)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.get('access_token')) {
-      router.push('/dashboard');
-    }
-
     return () => {
       subscription.unsubscribe();
     };
   }, [router]);
 
-  const checkUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-      if (session?.user) {
-        router.push('/dashboard');
-      }
-    } catch (error) {
-      console.error('Error checking user:', error);
-      setError('Failed to check authentication status');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleGoogleLogin = async () => {
     try {
       setError(null);
+      setLoading(true);
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://secureviewart.netlify.app/dashboard',
+          redirectTo: `${window.location.origin}/dashboard`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
@@ -81,12 +99,21 @@ export default function Home() {
       });
 
       if (error) {
+        console.error('Google login error:', error);
         throw error;
+      }
+
+      if (data?.url) {
+        console.log('Redirecting to:', data.url);
+        window.location.href = data.url;
+        return;
       }
     } catch (error: any) {
       console.error('Error logging in with Google:', error);
       setError(error.message || 'Failed to login with Google');
       setShowLoginForm(true);
+    } finally {
+      setLoading(false);
     }
   };
 
