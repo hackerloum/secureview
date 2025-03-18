@@ -39,22 +39,20 @@ export default function Home() {
         }
 
         // Check URL for auth callback
-        if (window.location.hash) {
-          const params = new URLSearchParams(window.location.hash.substring(1));
-          const accessToken = params.get('access_token');
-          if (accessToken) {
-            console.log('Access token found in URL');
-            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(accessToken);
-            if (authUser) {
-              console.log('User authenticated:', authUser);
-              setUser(authUser);
-              router.push('/dashboard');
-              return;
-            }
-            if (authError) {
-              console.error('Auth error:', authError);
-              setError(authError.message);
-            }
+        const params = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = params.get('access_token');
+        if (accessToken) {
+          console.log('Access token found in URL');
+          const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(accessToken);
+          if (authUser) {
+            console.log('User authenticated:', authUser);
+            setUser(authUser);
+            router.push('/dashboard');
+            return;
+          }
+          if (authError) {
+            console.error('Auth error:', authError);
+            setError(authError.message);
           }
         }
       } catch (error) {
@@ -70,10 +68,10 @@ export default function Home() {
       console.log('Auth state changed:', event, session?.user?.id);
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
-        router.push('/dashboard');
+        window.location.href = '/dashboard';
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        router.push('/');
+        window.location.href = '/';
       }
     });
 
@@ -90,7 +88,7 @@ export default function Home() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
