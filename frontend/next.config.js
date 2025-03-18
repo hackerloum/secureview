@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  reactStrictMode: true,
   images: {
     unoptimized: true,
     domains: ['res.cloudinary.com']
@@ -17,9 +17,9 @@ const nextConfig = {
     ignoreDuringBuilds: true
   },
   swcMinify: true,
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production' // Optional: Remove console.logs in production
-  }
+  poweredByHeader: false,
+  generateEtags: false,
+  compress: true
 }
 
 module.exports = nextConfig 
