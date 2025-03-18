@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
@@ -35,7 +35,7 @@ app.use(express.json());
 app.use(limiter);
 
 // Upload content endpoint
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+app.post('/api/upload', upload.single('file'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -51,7 +51,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         }
       );
 
-      uploadStream.end(req.file.buffer);
+      uploadStream.end(req.file!.buffer);
     });
 
     const { secure_url } = uploadResponse as any;
@@ -67,7 +67,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
           title: req.body.title,
           description: req.body.description,
           image_url: secure_url,
-          access_code,
+          access_code: accessCode,
           created_by: req.body.userId,
         },
       ])
@@ -83,7 +83,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 });
 
 // Get content by access code
-app.get('/api/content/:accessCode', async (req, res) => {
+app.get('/api/content/:accessCode', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
       .from('contents')
