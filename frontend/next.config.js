@@ -1,12 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
-  experimental: {
-    forceSwcTransforms: true // Force SWC transforms
-  },
+  output: 'export',
   images: {
-    domains: ['res.cloudinary.com'],
-    unoptimized: true
+    unoptimized: true,
+    domains: ['res.cloudinary.com']
   },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
