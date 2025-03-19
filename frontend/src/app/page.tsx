@@ -100,6 +100,10 @@ export default function Home() {
     router.push('/auth/signin');
   };
 
+  const handleAccessCode = () => {
+    router.push('/access');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A1A2F]">
@@ -117,7 +121,7 @@ export default function Home() {
           <a href="#demo" className="nav-link">Demo</a>
           <a href="#trust" className="nav-link">Trust</a>
           <button
-            onClick={() => router.push('/access')}
+            onClick={handleAccessCode}
             className="nav-link access-button"
           >
             Enter Access Code
