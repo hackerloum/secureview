@@ -25,48 +25,44 @@ export default function AccessPage() {
 
       console.log('Validating access code:', trimmedCode);
 
-      // First, let's see all contents in the database
+      // First, let's see all contents in the database with RLS policies
       const { data: allContents, error: listError } = await supabase
         .from('contents')
-        .select('*');
+        .select('id, title, access_code, created_at')
+        .order('created_at', { ascending: false });
 
       if (listError) {
         console.error('Error listing all contents:', listError);
-        setError('Failed to connect to database');
+        if (listError.code === 'PGRST116') {
+          setError('Database permissions error. Please contact support.');
+        } else {
+          setError('Failed to connect to database');
+        }
         return;
       }
 
       console.log('All contents in database:', allContents);
 
-      // Now try to find the specific content
+      // Now try to find the specific content with RLS policies
       const { data, error: fetchError } = await supabase
         .from('contents')
         .select('*')
         .eq('access_code', trimmedCode)
-        .maybeSingle();
+        .single();
 
       if (fetchError) {
         console.error('Error checking access code:', fetchError);
-        setError('Failed to verify access code');
+        if (fetchError.code === 'PGRST116') {
+          setError('Database permissions error. Please contact support.');
+        } else {
+          setError('Failed to verify access code');
+        }
         return;
       }
 
       console.log('Query result:', data);
 
       if (!data) {
-        // Try a more lenient search
-        const { data: searchData, error: searchError } = await supabase
-          .from('contents')
-          .select('*')
-          .or(`access_code.eq.${trimmedCode},access_code.ilike.%${trimmedCode}%`)
-          .maybeSingle();
-
-        if (searchError) {
-          console.error('Error in search:', searchError);
-        } else {
-          console.log('Search result:', searchData);
-        }
-
         console.log('No content found for access code:', trimmedCode);
         setError('Invalid access code. Please check and try again.');
         return;
