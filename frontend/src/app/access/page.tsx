@@ -25,9 +25,24 @@ export default function AccessPage() {
 
       console.log('Validating access code:', trimmedCode);
 
+      // First check database connection and get all contents
+      const { data: allContents, error: listError } = await supabase
+        .from('contents')
+        .select('id, access_code, title, created_at')
+        .order('created_at', { ascending: false });
+
+      if (listError) {
+        console.error('Error listing contents:', listError);
+        setError('Failed to connect to database');
+        return;
+      }
+
+      console.log('All contents in database:', allContents);
+
+      // Now try to find the specific content
       const { data, error: fetchError } = await supabase
         .from('contents')
-        .select('id, access_code, title')
+        .select('*')
         .eq('access_code', trimmedCode)
         .maybeSingle();
 
@@ -37,6 +52,8 @@ export default function AccessPage() {
         return;
       }
 
+      console.log('Query result:', data);
+
       if (!data) {
         console.log('No content found for access code:', trimmedCode);
         setError('Invalid access code. Please check and try again.');
@@ -44,7 +61,7 @@ export default function AccessPage() {
       }
 
       // If we found the content, redirect to view page
-      console.log('Valid access code found, redirecting...');
+      console.log('Content found:', data);
       router.push(`/view?code=${encodeURIComponent(trimmedCode)}`);
     } catch (err) {
       console.error('Error validating access code:', err);
