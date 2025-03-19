@@ -54,31 +54,48 @@ export default function ViewPage() {
           return;
         }
 
+        console.log('Fetching content with access code:', accessCode);
+
         const { data, error: fetchError } = await supabase
           .from('contents')
-          .select('*')
-          .eq('access_code', accessCode);
+          .select()
+          .eq('access_code', accessCode.trim());
 
         if (fetchError) {
-          console.error('Error fetching content:', fetchError);
+          console.error('Supabase error:', fetchError);
           setError('Failed to load content');
           return;
         }
 
+        console.log('Fetch response:', data);
+
         if (!data || data.length === 0) {
+          console.log('No content found for access code:', accessCode);
           setError('Invalid access code. Please check and try again.');
           return;
         }
 
         const contentItem = data[0];
+        console.log('Content found:', contentItem);
         setContent(contentItem);
 
         // Record view
-        await supabase.from('content_views').insert([
-          { content_id: contentItem.id, content_user_id: contentItem.user_id }
-        ]);
+        const { error: viewError } = await supabase
+          .from('content_views')
+          .insert([
+            { 
+              content_id: contentItem.id, 
+              content_user_id: contentItem.user_id,
+              viewed_at: new Date().toISOString()
+            }
+          ]);
+
+        if (viewError) {
+          console.error('Error recording view:', viewError);
+        }
+
       } catch (err) {
-        console.error('Error fetching content:', err);
+        console.error('Error in fetchContent:', err);
         setError('Failed to load content');
       } finally {
         setLoading(false);
