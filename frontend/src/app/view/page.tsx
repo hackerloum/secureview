@@ -49,26 +49,33 @@ export default function ViewPage() {
       try {
         const accessCode = searchParams.get('code');
         if (!accessCode) {
-          setError('Access code is required');
+          setError('Please enter an access code to view content');
+          setLoading(false);
           return;
         }
 
-        const { data, error } = await supabase
+        const { data, error: fetchError } = await supabase
           .from('contents')
           .select('*')
-          .eq('access_code', accessCode)
-          .single();
+          .eq('access_code', accessCode);
 
-        if (error) throw error;
-        if (!data) {
-          setError('Content not found');
+        if (fetchError) {
+          console.error('Error fetching content:', fetchError);
+          setError('Failed to load content');
           return;
         }
 
-        setContent(data);
+        if (!data || data.length === 0) {
+          setError('Invalid access code. Please check and try again.');
+          return;
+        }
+
+        const contentItem = data[0];
+        setContent(contentItem);
+
         // Record view
         await supabase.from('content_views').insert([
-          { content_id: data.id, content_user_id: data.user_id }
+          { content_id: contentItem.id, content_user_id: contentItem.user_id }
         ]);
       } catch (err) {
         console.error('Error fetching content:', err);
