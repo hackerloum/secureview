@@ -54,12 +54,22 @@ export default function ViewPage() {
           return;
         }
 
-        console.log('Fetching content with access code:', accessCode);
+        const cleanCode = decodeURIComponent(accessCode).trim();
+        console.log('Attempting to fetch content with code:', cleanCode);
 
+        // First, let's check what's in the database
+        const { data: allContents, error: debugError } = await supabase
+          .from('contents')
+          .select('access_code');
+        
+        console.log('All access codes in database:', allContents?.map(c => c.access_code));
+
+        // Now try to fetch the specific content
         const { data, error: fetchError } = await supabase
           .from('contents')
-          .select()
-          .eq('access_code', accessCode.trim());
+          .select('*')
+          .eq('access_code', cleanCode)
+          .maybeSingle();
 
         if (fetchError) {
           console.error('Supabase error:', fetchError);
@@ -67,25 +77,24 @@ export default function ViewPage() {
           return;
         }
 
-        console.log('Fetch response:', data);
+        console.log('Query result:', data);
 
-        if (!data || data.length === 0) {
-          console.log('No content found for access code:', accessCode);
+        if (!data) {
+          console.log('No content found for access code:', cleanCode);
           setError('Invalid access code. Please check and try again.');
           return;
         }
 
-        const contentItem = data[0];
-        console.log('Content found:', contentItem);
-        setContent(contentItem);
+        console.log('Content found:', data);
+        setContent(data);
 
         // Record view
         const { error: viewError } = await supabase
           .from('content_views')
           .insert([
             { 
-              content_id: contentItem.id, 
-              content_user_id: contentItem.user_id,
+              content_id: data.id, 
+              content_user_id: data.user_id,
               viewed_at: new Date().toISOString()
             }
           ]);
