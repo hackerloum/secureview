@@ -1,10 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  trailingSlash: true,
-  distDir: 'out',
   images: {
-    unoptimized: true,
     domains: ['res.cloudinary.com']
   },
   env: {
@@ -19,15 +15,9 @@ const nextConfig = {
     ignoreDuringBuilds: true
   },
   swcMinify: true,
-  experimental: {
-    forceSwcTransforms: true,
-  },
   compiler: {
     styledComponents: true,
   },
-  poweredByHeader: false,
-  generateEtags: false,
-  compress: true,
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -40,9 +30,7 @@ const nextConfig = {
       };
     }
     return config;
-  },
-  basePath: '',
-  assetPrefix: ''
+  }
 }
 
 module.exports = nextConfig 
