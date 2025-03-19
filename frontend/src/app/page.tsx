@@ -55,29 +55,33 @@ export default function Home() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleSignIn = async () => {
     try {
       setError(null);
-      setLoading(true);
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent'
-          }
-        }
+            prompt: 'consent',
+          },
+        },
       });
 
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+      if (error) {
+        console.error('Google sign in error:', error);
+        setError(error.message);
+        return;
+      }
+
+      if (data?.url) {
+        console.log('Redirecting to:', data.url);
+        window.location.href = data.url;
+      }
     } catch (error: any) {
-      console.error('Error logging in with Google:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+      console.error('Error during Google sign in:', error);
+      setError(error.message || 'An error occurred during sign in');
     }
   };
 
@@ -171,16 +175,23 @@ export default function Home() {
           <button 
             className="cta-button primary-button"
             onClick={handleGoogleSignIn}
+            disabled={loading}
           >
-            <FcGoogle /> Sign In with Google
+            <FcGoogle /> {loading ? 'Signing in...' : 'Sign In with Google'}
           </button>
           <button 
             className="cta-button secondary-button"
             onClick={handleEmailSignIn}
+            disabled={loading}
           >
             Sign In with Email
           </button>
         </div>
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
       </section>
 
       <section id="features" className="features">
