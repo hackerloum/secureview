@@ -2,40 +2,19 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import Image from 'next/image';
-import { FaGoogle, FaShieldAlt, FaLock, FaChartLine, FaGithub, FaTwitter, FaLinkedin } from 'react-icons/fa';
-import { HiMenuAlt3, HiX } from 'react-icons/hi';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { FaEye, FaTachometerAlt, FaBars, FaTimes } from 'react-icons/fa';
+import { FaEye, FaTachometerAlt, FaBars, FaTimes, FaLock } from 'react-icons/fa';
 import { FiGithub, FiTwitter, FiLinkedin } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 import './styles/landing.css';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      flowType: 'pkce',
-      detectSessionInUrl: true,
-      persistSession: true,
-      autoRefreshToken: true
-    }
-  }
-);
-
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showLoginForm, setShowLoginForm] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const supabaseAuth = createClientComponentClient();
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
     checkUser();
@@ -45,8 +24,7 @@ export default function Home() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        setUser(session.user);
-        router.push('/dashboard');
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       console.error('Error checking user:', error);
@@ -58,6 +36,8 @@ export default function Home() {
   const handleGoogleSignIn = async () => {
     try {
       setError(null);
+      setLoading(true);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -82,57 +62,8 @@ export default function Home() {
     } catch (error: any) {
       console.error('Error during Google sign in:', error);
       setError(error.message || 'An error occurred during sign in');
-    }
-  };
-
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setError(null);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-      if (data.user) router.push('/dashboard');
-    } catch (error: any) {
-      console.error('Error logging in with email:', error);
-      setError(error.message);
-    }
-  };
-
-  const handleEmailSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setError(null);
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        },
-      });
-
-      if (error) throw error;
-      setError('Please check your email for verification link');
-    } catch (error: any) {
-      console.error('Error signing up:', error);
-      setError(error.message);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabaseAuth.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error signing in with Google:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -272,64 +203,6 @@ export default function Home() {
           </div>
         </div>
       </footer>
-
-      {/* Auth Modal */}
-      {showLoginForm && !user && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#0A1A2F] border border-white/10 rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-semibold mb-4 text-white">Sign In / Sign Up</h3>
-            {error && (
-              <div className="bg-red-500/10 text-red-400 p-3 rounded-lg mb-4">
-                {error}
-              </div>
-            )}
-            <form onSubmit={handleEmailLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 block w-full rounded-lg bg-white/5 border border-white/10 text-white px-4 py-2 focus:ring-[#00C6B3] focus:border-[#00C6B3]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 block w-full rounded-lg bg-white/5 border border-white/10 text-white px-4 py-2 focus:ring-[#00C6B3] focus:border-[#00C6B3]"
-                />
-              </div>
-              <div className="flex space-x-3">
-                <button
-                  type="submit"
-                  className="flex-1 bg-[#00C6B3] text-white px-4 py-2 rounded-lg hover:bg-[#00C6B3]/90 transition-colors"
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={handleEmailSignUp}
-                  className="flex-1 bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-white/20 transition-colors"
-                >
-                  Sign Up
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowLoginForm(false)}
-                className="w-full text-gray-400 text-sm hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
