@@ -112,10 +112,12 @@ export default function Home() {
     setError(null);
     
     try {
+      console.log('Validating access code:', trimmedCode);
+
       // First verify the code exists
       const { data, error } = await supabase
         .from('contents')
-        .select('id')
+        .select('id, access_code')
         .eq('access_code', trimmedCode)
         .maybeSingle();
 
@@ -125,7 +127,10 @@ export default function Home() {
         return;
       }
 
+      console.log('Database response:', data);
+
       if (!data) {
+        console.log('No content found for access code:', trimmedCode);
         setError('Invalid access code. Please check and try again.');
         return;
       }
