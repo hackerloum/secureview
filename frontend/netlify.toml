@@ -6,7 +6,10 @@
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true
+
+[build.environment]
+  NEXT_PUBLIC_SUPABASE_URL = "https://jefvnmetxmksadywqfyy.supabase.co"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplZnZubWV0eG1rc2FkeXdxZnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIyMzk1NTUsImV4cCI6MjA1NzgxNTU1NX0.aLQxFfiNffWbn7thDH12mOTy22wpl-nFb0JKwmW7puM"
 
 [[headers]]
   for = "/*"
