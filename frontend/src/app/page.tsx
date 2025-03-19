@@ -101,48 +101,8 @@ export default function Home() {
     router.push('/auth/signin');
   };
 
-  const handleAccessCode = async () => {
-    const trimmedCode = accessCode.trim();
-    if (!trimmedCode) {
-      setError('Please enter an access code');
-      return;
-    }
-    
-    // Clear any previous errors
-    setError(null);
-    
-    try {
-      console.log('Validating access code:', trimmedCode);
-
-      // First verify the code exists
-      const { data, error } = await supabase
-        .from('contents')
-        .select('id, access_code')
-        .eq('access_code', trimmedCode)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error checking access code:', error);
-        setError('Failed to verify access code');
-        return;
-      }
-
-      console.log('Database response:', data);
-
-      if (!data) {
-        console.log('No content found for access code:', trimmedCode);
-        setError('Invalid access code. Please check and try again.');
-        return;
-      }
-
-      // If we found the content, redirect to view page
-      console.log('Valid access code found, redirecting...');
-      const encodedCode = encodeURIComponent(trimmedCode);
-      router.push(`/view?code=${encodedCode}`);
-    } catch (err) {
-      console.error('Error validating access code:', err);
-      setError('Failed to validate access code');
-    }
+  const handleAccessCode = () => {
+    router.push('/access');
   };
 
   const handleAccessCodeSubmit = (e: React.FormEvent) => {
@@ -151,15 +111,7 @@ export default function Home() {
   };
 
   const handleNavAccessCode = () => {
-    if (accessCode.trim()) {
-      handleAccessCode();
-    } else {
-      // Focus the input field if no code is entered
-      const inputElement = document.querySelector('.access-code-input') as HTMLInputElement;
-      if (inputElement) {
-        inputElement.focus();
-      }
-    }
+    router.push('/access');
   };
 
   if (loading) {
