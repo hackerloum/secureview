@@ -60,9 +60,9 @@ export default function ViewPage() {
         // First, let's check what's in the database
         const { data: allContents, error: debugError } = await supabase
           .from('contents')
-          .select('access_code');
+          .select('id, access_code');
         
-        console.log('All access codes in database:', allContents?.map(c => c.access_code));
+        console.log('All contents in database:', allContents);
 
         // Now try to fetch the specific content
         const { data, error: fetchError } = await supabase
