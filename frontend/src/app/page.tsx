@@ -102,16 +102,36 @@ export default function Home() {
   };
 
   const handleAccessCode = () => {
-    if (!accessCode.trim()) {
+    const trimmedCode = accessCode.trim();
+    if (!trimmedCode) {
       setError('Please enter an access code');
       return;
     }
-    router.push(`/view?code=${encodeURIComponent(accessCode.trim())}`);
+    
+    // Clear any previous errors
+    setError(null);
+    
+    // Encode the access code and redirect
+    const encodedCode = encodeURIComponent(trimmedCode);
+    console.log('Redirecting with access code:', trimmedCode);
+    router.push(`/view?code=${encodedCode}`);
   };
 
   const handleAccessCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleAccessCode();
+  };
+
+  const handleNavAccessCode = () => {
+    if (accessCode.trim()) {
+      handleAccessCode();
+    } else {
+      // Focus the input field if no code is entered
+      const inputElement = document.querySelector('.access-code-input') as HTMLInputElement;
+      if (inputElement) {
+        inputElement.focus();
+      }
+    }
   };
 
   if (loading) {
@@ -131,7 +151,7 @@ export default function Home() {
           <a href="#demo" className="nav-link">Demo</a>
           <a href="#trust" className="nav-link">Trust</a>
           <button
-            onClick={handleAccessCode}
+            onClick={handleNavAccessCode}
             className="nav-link access-button"
           >
             Enter Access Code
