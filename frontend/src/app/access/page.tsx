@@ -25,21 +25,20 @@ export default function AccessPage() {
 
       console.log('Validating access code:', trimmedCode);
 
-      // Test database connection first
-      const { data: testData, error: testError } = await supabase
+      // First, let's see all contents in the database
+      const { data: allContents, error: listError } = await supabase
         .from('contents')
-        .select('count')
-        .limit(1);
+        .select('*');
 
-      if (testError) {
-        console.error('Database connection error:', testError);
-        setError('Failed to connect to database. Please try again later.');
+      if (listError) {
+        console.error('Error listing all contents:', listError);
+        setError('Failed to connect to database');
         return;
       }
 
-      console.log('Database connection test:', testData);
+      console.log('All contents in database:', allContents);
 
-      // Now try to find the specific content with more detailed error handling
+      // Now try to find the specific content
       const { data, error: fetchError } = await supabase
         .from('contents')
         .select('*')
@@ -48,24 +47,24 @@ export default function AccessPage() {
 
       if (fetchError) {
         console.error('Error checking access code:', fetchError);
-        setError('Failed to verify access code. Please try again.');
+        setError('Failed to verify access code');
         return;
       }
 
       console.log('Query result:', data);
 
       if (!data) {
-        // Double check if the content exists with a different query
-        const { data: checkData, error: checkError } = await supabase
+        // Try a more lenient search
+        const { data: searchData, error: searchError } = await supabase
           .from('contents')
           .select('*')
-          .ilike('access_code', trimmedCode)
+          .or(`access_code.eq.${trimmedCode},access_code.ilike.%${trimmedCode}%`)
           .maybeSingle();
 
-        if (checkError) {
-          console.error('Error in double check:', checkError);
+        if (searchError) {
+          console.error('Error in search:', searchError);
         } else {
-          console.log('Double check result:', checkData);
+          console.log('Search result:', searchData);
         }
 
         console.log('No content found for access code:', trimmedCode);
@@ -78,7 +77,7 @@ export default function AccessPage() {
       router.push(`/view?code=${encodeURIComponent(trimmedCode)}`);
     } catch (err) {
       console.error('Error validating access code:', err);
-      setError('Failed to validate access code. Please try again.');
+      setError('Failed to validate access code');
     } finally {
       setLoading(false);
     }
