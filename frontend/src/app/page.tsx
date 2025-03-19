@@ -120,21 +120,24 @@ export default function Home() {
             onClick={() => router.push('/access')}
             className="nav-link access-button"
           >
-            Access Content
-          </button>
-          <button
-            onClick={() => router.push('/user')}
-            className="nav-link user-button"
-          >
-            My Account
+            Enter Access Code
           </button>
         </div>
-        <button 
-          className="mobile-menu"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
-        </button>
+        <div className="nav-right">
+          <button
+            onClick={() => router.push('/access')}
+            className="nav-link access-button mobile-hide"
+          >
+            Enter Access Code
+          </button>
+          <button 
+            className="mobile-menu"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
+          </button>
+        </div>
       </nav>
 
       <section className="hero">
