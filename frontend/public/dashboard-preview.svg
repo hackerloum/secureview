@@ -1,0 +1,21 @@
+<svg width="800" height="450" viewBox="0 0 800 450" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="450" fill="#1A1F3C"/>
+  <rect x="20" y="20" width="200" height="410" rx="8" fill="#2A3F6F"/>
+  <rect x="240" y="20" width="540" height="200" rx="8" fill="#2A3F6F"/>
+  <rect x="240" y="240" width="260" height="190" rx="8" fill="#2A3F6F"/>
+  <rect x="520" y="240" width="260" height="190" rx="8" fill="#2A3F6F"/>
+  
+  <!-- Sidebar Menu Items -->
+  <rect x="40" y="40" width="160" height="40" rx="4" fill="#4FD1C5" fillOpacity="0.1"/>
+  <rect x="40" y="100" width="160" height="40" rx="4" fill="#4FD1C5" fillOpacity="0.1"/>
+  <rect x="40" y="160" width="160" height="40" rx="4" fill="#4FD1C5" fillOpacity="0.1"/>
+  
+  <!-- Chart Lines -->
+  <path d="M260 120 L340 80 L420 140 L500 60 L580 100 L660 70 L740 110" stroke="#4FD1C5" strokeWidth="2" fill="none"/>
+  
+  <!-- Content Cards -->
+  <rect x="260" y="260" width="220" height="60" rx="4" fill="#4FD1C5" fillOpacity="0.1"/>
+  <rect x="260" y="340" width="220" height="60" rx="4" fill="#4FD1C5" fillOpacity="0.1"/>
+  <rect x="540" y="260" width="220" height="60" rx="4" fill="#4FD1C5" fillOpacity="0.1"/>
+  <rect x="540" y="340" width="220" height="60" rx="4" fill="#4FD1C5" fillOpacity="0.1"/>
+</svg> 
