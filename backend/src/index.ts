@@ -11,6 +11,22 @@ dotenv.config();
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Validate environment variables
+const requiredEnvVars = [
+  'SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'CLOUDINARY_CLOUD_NAME',
+  'CLOUDINARY_API_KEY',
+  'CLOUDINARY_API_SECRET'
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`Missing required environment variable: ${envVar}`);
+    process.exit(1);
+  }
+}
+
 // Initialize Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -37,14 +53,26 @@ app.use(limiter);
 // Upload content endpoint
 app.post('/api/upload', upload.single('file'), async (req: Request, res: Response) => {
   try {
+    // Validate request
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    if (!req.body.title || !req.body.description || !req.body.userId) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
     // Upload to Cloudinary
     const uploadResponse = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
-        { resource_type: 'auto' },
+        {
+          resource_type: 'auto',
+          folder: 'secureview',
+          transformation: [
+            { width: 1200, height: 800, crop: 'limit' },
+            { quality: 'auto' }
+          ]
+        },
         (error, result) => {
           if (error) reject(error);
           else resolve(result);
@@ -68,17 +96,21 @@ app.post('/api/upload', upload.single('file'), async (req: Request, res: Respons
           description: req.body.description,
           image_url: secure_url,
           access_code: accessCode,
-          created_by: req.body.userId,
+          user_id: req.body.userId,
         },
       ])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
 
     res.json({ data, accessCode });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('Upload error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
@@ -97,9 +129,22 @@ app.get('/api/content/:accessCode', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Content not found' });
     }
 
+    // Record the view
+    await supabase
+      .from('content_views')
+      .insert([
+        {
+          content_id: data.id,
+          content_user_id: data.user_id,
+          viewer_ip: req.ip,
+          viewer_user_agent: req.headers['user-agent']
+        }
+      ]);
+
     res.json(data);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('Get content error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
