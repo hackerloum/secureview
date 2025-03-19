@@ -102,11 +102,16 @@ export default function Home() {
   };
 
   const handleAccessCode = () => {
-    if (accessCode) {
-      router.push(`/view?code=${accessCode}`);
-    } else {
-      router.push('/view');
+    if (!accessCode.trim()) {
+      setError('Please enter an access code');
+      return;
     }
+    router.push(`/view?code=${encodeURIComponent(accessCode.trim())}`);
+  };
+
+  const handleAccessCodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleAccessCode();
   };
 
   if (loading) {
@@ -150,19 +155,21 @@ export default function Home() {
           professional content sharing for businesses and creators.
         </p>
         <div className="access-code-form">
-          <input
-            type="text"
-            placeholder="Enter access code"
-            value={accessCode}
-            onChange={(e) => setAccessCode(e.target.value)}
-            className="access-code-input"
-          />
-          <button 
-            className="access-code-submit"
-            onClick={handleAccessCode}
-          >
-            View Content
-          </button>
+          <form onSubmit={handleAccessCodeSubmit} className="w-full flex gap-4">
+            <input
+              type="text"
+              placeholder="Enter access code"
+              value={accessCode}
+              onChange={(e) => setAccessCode(e.target.value)}
+              className="access-code-input"
+            />
+            <button 
+              type="submit"
+              className="access-code-submit"
+            >
+              View Content
+            </button>
+          </form>
         </div>
         <div className="cta-buttons">
           <button 
