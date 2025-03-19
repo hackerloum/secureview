@@ -124,12 +124,6 @@ export default function Home() {
           </button>
         </div>
         <div className="nav-right">
-          <button
-            onClick={() => router.push('/access')}
-            className="nav-link access-button mobile-hide"
-          >
-            Enter Access Code
-          </button>
           <button 
             className="mobile-menu"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
