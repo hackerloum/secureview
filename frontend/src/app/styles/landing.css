@@ -96,6 +96,54 @@
   margin-right: auto;
 }
 
+.access-code-form {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 2.5rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.access-code-input {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  width: 100%;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.access-code-input:focus {
+  outline: none;
+  border-color: #00C6B3;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.access-code-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.access-code-submit {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  background: #00C6B3;
+  color: white;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.access-code-submit:hover {
+  background: #00a396;
+  transform: translateY(-2px);
+}
+
 .cta-buttons {
   display: flex;
   gap: 1rem;
@@ -339,5 +387,14 @@
   .footer-links {
     flex-direction: column;
     gap: 1rem;
+  }
+
+  .access-code-form {
+    flex-direction: column;
+    padding: 0 1rem;
+  }
+
+  .access-code-submit {
+    width: 100%;
   }
 } 
