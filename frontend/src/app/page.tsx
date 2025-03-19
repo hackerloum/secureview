@@ -101,7 +101,7 @@ export default function Home() {
     router.push('/auth/signin');
   };
 
-  const handleAccessCode = () => {
+  const handleAccessCode = async () => {
     const trimmedCode = accessCode.trim();
     if (!trimmedCode) {
       setError('Please enter an access code');
@@ -111,10 +111,33 @@ export default function Home() {
     // Clear any previous errors
     setError(null);
     
-    // Encode the access code and redirect
-    const encodedCode = encodeURIComponent(trimmedCode);
-    console.log('Redirecting with access code:', trimmedCode);
-    router.push(`/view?code=${encodedCode}`);
+    try {
+      // First verify the code exists
+      const { data, error } = await supabase
+        .from('contents')
+        .select('id')
+        .eq('access_code', trimmedCode)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking access code:', error);
+        setError('Failed to verify access code');
+        return;
+      }
+
+      if (!data) {
+        setError('Invalid access code. Please check and try again.');
+        return;
+      }
+
+      // If we found the content, redirect to view page
+      console.log('Valid access code found, redirecting...');
+      const encodedCode = encodeURIComponent(trimmedCode);
+      router.push(`/view?code=${encodedCode}`);
+    } catch (err) {
+      console.error('Error validating access code:', err);
+      setError('Failed to validate access code');
+    }
   };
 
   const handleAccessCodeSubmit = (e: React.FormEvent) => {
