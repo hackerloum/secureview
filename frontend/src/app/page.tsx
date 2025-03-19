@@ -14,6 +14,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [accessCode, setAccessCode] = useState('');
 
   useEffect(() => {
     const checkSession = async () => {
@@ -101,7 +102,11 @@ export default function Home() {
   };
 
   const handleAccessCode = () => {
-    router.push('/access');
+    if (accessCode) {
+      router.push(`/view?code=${accessCode}`);
+    } else {
+      router.push('/view');
+    }
   };
 
   if (loading) {
@@ -144,6 +149,21 @@ export default function Home() {
           Control who sees your content with unique access codes. Simple, secure, and
           professional content sharing for businesses and creators.
         </p>
+        <div className="access-code-form">
+          <input
+            type="text"
+            placeholder="Enter access code"
+            value={accessCode}
+            onChange={(e) => setAccessCode(e.target.value)}
+            className="access-code-input"
+          />
+          <button 
+            className="access-code-submit"
+            onClick={handleAccessCode}
+          >
+            View Content
+          </button>
+        </div>
         <div className="cta-buttons">
           <button 
             className="cta-button primary-button"
