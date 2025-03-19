@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import supabase from '@/lib/supabase';
+import supabase from '../lib/supabase';
 import { FaEye, FaTachometerAlt, FaBars, FaTimes, FaLock } from 'react-icons/fa';
 import { FiGithub, FiTwitter, FiLinkedin } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
