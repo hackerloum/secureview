@@ -2,38 +2,45 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import supabase from '@/lib/supabase';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Try to get the code from the URL
         const code = new URLSearchParams(window.location.search).get('code');
         
-        if (code) {
-          await supabase.auth.exchangeCodeForSession(code);
-        }
-
-        // Get the session
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error('Auth error:', error.message);
-          router.push('/?error=auth_callback_error');
+        if (!code) {
+          console.error('No code found in URL');
+          router.push('/?error=no_code');
           return;
         }
 
-        if (session) {
-          console.log('Session established, redirecting to dashboard...');
-          router.push('/dashboard');
-        } else {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        
+        if (exchangeError) {
+          console.error('Exchange error:', exchangeError);
+          router.push('/?error=exchange_error');
+          return;
+        }
+
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          router.push('/?error=session_error');
+          return;
+        }
+
+        if (!session) {
           console.error('No session found');
           router.push('/?error=no_session');
+          return;
         }
+
+        router.push('/dashboard');
       } catch (error) {
         console.error('Auth callback error:', error);
         router.push('/?error=auth_callback_error');
@@ -41,7 +48,7 @@ export default function AuthCallbackPage() {
     };
 
     handleAuthCallback();
-  }, [router, supabase.auth]);
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0A1A2F]">
