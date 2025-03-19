@@ -13,23 +13,32 @@
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
+  position: relative;
 }
 
 .logo {
   font-size: 1.5rem;
   font-weight: bold;
   color: #ffffff;
+  z-index: 20;
 }
 
 .nav-links {
   display: flex;
+  align-items: center;
   gap: 2rem;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  z-index: 20;
 }
 
 .nav-link {
   color: #ffffff;
   text-decoration: none;
-  margin-left: 2rem;
   transition: color 0.2s;
 }
 
@@ -37,26 +46,29 @@
   color: #00C6B3;
 }
 
-.nav-link.access-button,
-.nav-link.user-button {
+.nav-link.access-button {
   background: transparent;
   border: 1px solid #00C6B3;
   color: #00C6B3;
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
   transition: all 0.2s;
-  margin-left: 1rem;
   cursor: pointer;
 }
 
-.nav-link.access-button:hover,
-.nav-link.user-button:hover {
+.nav-link.access-button:hover {
   background: #00C6B3;
   color: white;
 }
 
 .mobile-menu {
   display: none;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0.5rem;
+  font-size: 1.5rem;
 }
 
 .hero {
@@ -261,16 +273,32 @@
 }
 
 @media (max-width: 768px) {
+  .nav {
+    padding: 1rem;
+  }
+
+  .mobile-menu {
+    display: block;
+  }
+
+  .mobile-hide {
+    display: none;
+  }
+
   .nav-links {
     display: none;
-    position: absolute;
-    top: 100%;
+    position: fixed;
+    top: 0;
     left: 0;
     right: 0;
+    bottom: 0;
     background: #0A1A2F;
-    padding: 1rem;
     flex-direction: column;
+    justify-content: center;
     align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+    z-index: 10;
   }
 
   .nav-links.mobile-active {
@@ -278,18 +306,13 @@
   }
 
   .nav-link {
-    margin: 0.5rem 0;
+    font-size: 1.25rem;
   }
 
-  .nav-link.access-button,
-  .nav-link.user-button {
-    margin: 0.5rem 0;
-    width: 100%;
-    text-align: center;
-  }
-
-  .mobile-menu {
-    display: block;
+  .nav-link.access-button {
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 1.25rem;
   }
 
   .hero h1 {
