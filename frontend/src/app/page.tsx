@@ -116,6 +116,18 @@ export default function Home() {
           <a href="#features" className="nav-link">Features</a>
           <a href="#demo" className="nav-link">Demo</a>
           <a href="#trust" className="nav-link">Trust</a>
+          <button
+            onClick={() => router.push('/access')}
+            className="nav-link access-button"
+          >
+            Access Content
+          </button>
+          <button
+            onClick={() => router.push('/user')}
+            className="nav-link user-button"
+          >
+            My Account
+          </button>
         </div>
         <button 
           className="mobile-menu"
