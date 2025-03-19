@@ -13,20 +13,18 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // Allow access to auth callback URL
-  if (req.nextUrl.pathname.startsWith('/auth/callback')) {
-    return res;
-  }
-
-  // If there's no session and the user is trying to access the dashboard
-  if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-    const redirectUrl = new URL('/', req.url);
+  // If user is not signed in and the current path is not / or /auth/callback,
+  // redirect the user to /
+  if (!session && !['/'].includes(req.nextUrl.pathname)) {
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = '/';
     return NextResponse.redirect(redirectUrl);
   }
 
-  // If there's a session and the user is on the home page, redirect to dashboard
+  // If user is signed in and the current path is /, redirect to /dashboard
   if (session && req.nextUrl.pathname === '/') {
-    const redirectUrl = new URL('/dashboard', req.url);
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = '/dashboard';
     return NextResponse.redirect(redirectUrl);
   }
 
