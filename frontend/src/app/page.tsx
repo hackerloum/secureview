@@ -6,6 +6,11 @@ import { createClient } from '@supabase/supabase-js';
 import Image from 'next/image';
 import { FaGoogle, FaShieldAlt, FaLock, FaChartLine, FaGithub, FaTwitter, FaLinkedin } from 'react-icons/fa';
 import { HiMenuAlt3, HiX } from 'react-icons/hi';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { FaEye, FaTachometerAlt, FaBars, FaTimes } from 'react-icons/fa';
+import { FiGithub, FiTwitter, FiLinkedin } from 'react-icons/fi';
+import { FcGoogle } from 'react-icons/fc';
+import './styles/landing.css';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,6 +34,8 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const supabaseAuth = createClientComponentClient();
 
   useEffect(() => {
     checkUser();
@@ -111,6 +118,24 @@ export default function Home() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabaseAuth.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+    }
+  };
+
+  const handleEmailSignIn = () => {
+    window.location.href = '/auth/signin';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A1A2F]">
@@ -120,234 +145,119 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A1A2F] text-white">
-      {/* Navigation */}
-      <nav className="relative bg-[#0A1A2F]/95 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-[#00C6B3]">SecureView</h1>
-            </div>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-4">
-              {user ? (
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="bg-[#00C6B3] text-white px-6 py-2 rounded-lg hover:bg-[#00C6B3]/90 transition-colors"
-                >
-                  Dashboard
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={handleGoogleLogin}
-                    className="bg-[#00C6B3] text-white px-6 py-2 rounded-lg hover:bg-[#00C6B3]/90 transition-colors"
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => router.push('/user')}
-                    className="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-white/20 transition-colors"
-                  >
-                    View Content
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Mobile menu button */}
-            <div className="md:hidden flex items-center">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="text-white hover:text-[#00C6B3] transition-colors"
-              >
-                {mobileMenuOpen ? (
-                  <HiX className="h-6 w-6" />
-                ) : (
-                  <HiMenuAlt3 className="h-6 w-6" />
-                )}
-              </button>
-            </div>
-          </div>
+    <div className="landing-container">
+      <nav className="nav">
+        <div className="logo">SecureView</div>
+        <div className={`nav-links ${isMobileMenuOpen ? 'mobile-active' : ''}`}>
+          <a href="#features" className="nav-link">Features</a>
+          <a href="#demo" className="nav-link">Demo</a>
+          <a href="#trust" className="nav-link">Trust</a>
         </div>
-
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              {user ? (
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="block w-full text-left px-3 py-2 rounded-md text-white hover:bg-white/10 transition-colors"
-                >
-                  Dashboard
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={handleGoogleLogin}
-                    className="block w-full text-left px-3 py-2 rounded-md text-white hover:bg-white/10 transition-colors"
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => router.push('/user')}
-                    className="block w-full text-left px-3 py-2 rounded-md text-white hover:bg-white/10 transition-colors"
-                  >
-                    View Content
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        <button 
+          className="mobile-menu"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
+        </button>
       </nav>
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-b from-[#0A1A2F] to-[#0A1A2F]/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
-          <div className="text-center relative z-10">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-[#00C6B3] bg-clip-text text-transparent">
-              Share Your Content Securely
-            </h1>
-            <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-3xl mx-auto">
-              Protect your digital content with unique access codes. Simple, secure, and professional content sharing for businesses and individuals.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button
-                onClick={handleGoogleLogin}
-                className="flex items-center justify-center gap-2 bg-white text-[#0A1A2F] px-8 py-3 rounded-lg text-lg font-medium hover:bg-gray-100 transition-colors"
-              >
-                <FaGoogle className="h-5 w-5" />
-                Sign in with Google
-              </button>
-              <button
-                onClick={() => setShowLoginForm(true)}
-                className="flex items-center justify-center gap-2 bg-[#00C6B3] text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-[#00C6B3]/90 transition-colors"
-              >
-                Email Sign In
-              </button>
-            </div>
-            {error && (
-              <div className="mt-4 text-red-400">
-                {error}
-              </div>
-            )}
-          </div>
+      <section className="hero">
+        <h1>Share Your Content Securely</h1>
+        <p>
+          Control who sees your content with unique access codes. Simple, secure, and
+          professional content sharing for businesses and creators.
+        </p>
+        <div className="cta-buttons">
+          <button 
+            className="cta-button primary-button"
+            onClick={handleGoogleSignIn}
+          >
+            <FcGoogle /> Sign In with Google
+          </button>
+          <button 
+            className="cta-button secondary-button"
+            onClick={handleEmailSignIn}
+          >
+            Sign In with Email
+          </button>
         </div>
+      </section>
 
-        {/* Abstract background elements */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-7xl">
-          <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-[#00C6B3]/20 rounded-full filter blur-3xl"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full filter blur-3xl"></div>
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div className="bg-[#0A1A2F]/95 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Why Choose SecureView?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white/5 p-8 rounded-xl hover:bg-white/10 transition-colors">
-              <div className="text-[#00C6B3] text-4xl mb-4">
-                <FaLock />
-              </div>
-              <h3 className="text-xl font-semibold mb-4">Unique Access Codes</h3>
-              <p className="text-gray-300">
-                Generate secure access codes for each piece of content. Control who sees what with precision.
-              </p>
+      <section id="features" className="features">
+        <div className="features-grid">
+          <div className="feature-card">
+            <div className="feature-icon">
+              <FaLock />
             </div>
-            <div className="bg-white/5 p-8 rounded-xl hover:bg-white/10 transition-colors">
-              <div className="text-[#00C6B3] text-4xl mb-4">
-                <FaShieldAlt />
-              </div>
-              <h3 className="text-xl font-semibold mb-4">Content Control</h3>
-              <p className="text-gray-300">
-                Monitor views, manage access, and revoke permissions at any time. Your content, your rules.
-              </p>
-            </div>
-            <div className="bg-white/5 p-8 rounded-xl hover:bg-white/10 transition-colors">
-              <div className="text-[#00C6B3] text-4xl mb-4">
-                <FaChartLine />
-              </div>
-              <h3 className="text-xl font-semibold mb-4">Simple Dashboard</h3>
-              <p className="text-gray-300">
-                Intuitive analytics and content management. Track engagement and manage everything in one place.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Visual Demo Section */}
-      <div className="bg-[#0A1A2F] py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Powerful Yet Simple
-            </h2>
-            <p className="text-xl text-gray-300">
-              See how easy it is to manage and share your content securely
+            <h3 className="feature-title">Unique Access Codes</h3>
+            <p className="feature-description">
+              Generate secure, one-time access codes for your content. Control who sees what
+              and when they see it.
             </p>
           </div>
-          <div className="relative rounded-xl overflow-hidden shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0A1A2F] via-transparent to-transparent z-10"></div>
-            <Image
-              src="/dashboard-preview.jpg"
-              alt="SecureView Dashboard Preview"
-              width={1920}
-              height={1080}
-              className="w-full filter blur-sm hover:blur-none transition-all duration-500"
-            />
+          <div className="feature-card">
+            <div className="feature-icon">
+              <FaEye />
+            </div>
+            <h3 className="feature-title">Content Control</h3>
+            <p className="feature-description">
+              Monitor views, set expiration dates, and revoke access at any time. Full
+              control over your shared content.
+            </p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">
+              <FaTachometerAlt />
+            </div>
+            <h3 className="feature-title">Simple Dashboard</h3>
+            <p className="feature-description">
+              Manage all your content from one intuitive dashboard. Track analytics and
+              control access effortlessly.
+            </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Trust Section */}
-      <div className="bg-[#0A1A2F]/95 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-lg text-gray-400 mb-8">Trusted by 500+ Companies</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center justify-items-center opacity-50">
-              {/* Replace with actual company logos */}
-              <div className="h-12 w-32 bg-white/10 rounded"></div>
-              <div className="h-12 w-32 bg-white/10 rounded"></div>
-              <div className="h-12 w-32 bg-white/10 rounded"></div>
-              <div className="h-12 w-32 bg-white/10 rounded"></div>
-            </div>
-          </div>
+      <section id="demo" className="demo">
+        <Image
+          src="/dashboard-preview.svg"
+          alt="SecureView Dashboard Preview"
+          width={800}
+          height={450}
+          className="demo-image"
+        />
+      </section>
+
+      <section id="trust" className="trust">
+        <h3>Trusted by 500+ Companies</h3>
+        <div className="trust-logos">
+          {/* Replace with actual company logos */}
+          <div className="trust-logo">Company 1</div>
+          <div className="trust-logo">Company 2</div>
+          <div className="trust-logo">Company 3</div>
+          <div className="trust-logo">Company 4</div>
         </div>
-      </div>
+      </section>
 
-      {/* Footer */}
-      <footer className="bg-[#0A1A2F] border-t border-white/10 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-gray-400 mb-4 md:mb-0">
-              &copy; 2024 SecureView. All rights reserved.
-            </div>
-            <div className="flex items-center space-x-6">
-              <a href="#" className="text-gray-400 hover:text-[#00C6B3] transition-colors">
-                <FaTwitter className="h-6 w-6" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-[#00C6B3] transition-colors">
-                <FaGithub className="h-6 w-6" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-[#00C6B3] transition-colors">
-                <FaLinkedin className="h-6 w-6" />
-              </a>
-            </div>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                Terms
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                Privacy
-              </a>
-            </div>
+      <footer className="footer">
+        <div className="footer-content">
+          <div className="footer-links">
+            <a href="/terms" className="footer-link">Terms of Service</a>
+            <a href="/privacy" className="footer-link">Privacy Policy</a>
+          </div>
+          <div className="social-icons">
+            <a href="https://github.com" className="social-icon" target="_blank" rel="noopener noreferrer">
+              <FiGithub />
+            </a>
+            <a href="https://twitter.com" className="social-icon" target="_blank" rel="noopener noreferrer">
+              <FiTwitter />
+            </a>
+            <a href="https://linkedin.com" className="social-icon" target="_blank" rel="noopener noreferrer">
+              <FiLinkedin />
+            </a>
+          </div>
+          <div className="copyright">
+            © {new Date().getFullYear()} SecureView. All rights reserved.
           </div>
         </div>
       </footer>
