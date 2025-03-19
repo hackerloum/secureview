@@ -19,6 +19,12 @@ const nextConfig = {
     ignoreDuringBuilds: true
   },
   swcMinify: true,
+  experimental: {
+    forceSwcTransforms: true,
+  },
+  compiler: {
+    styledComponents: true,
+  },
   poweredByHeader: false,
   generateEtags: false,
   compress: true,
