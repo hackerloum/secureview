@@ -18,13 +18,24 @@ export default function Home() {
 
   useEffect(() => {
     checkUser();
+
+    // Check for error parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorMessage = urlParams.get('error');
+    if (errorMessage) {
+      setError(
+        errorMessage === 'auth_callback_error' 
+          ? 'Authentication failed. Please try again.' 
+          : 'An error occurred during sign in.'
+      );
+    }
   }, []);
 
   const checkUser = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        window.location.href = '/dashboard';
+        router.push('/dashboard');
       }
     } catch (error) {
       console.error('Error checking user:', error);
@@ -68,7 +79,7 @@ export default function Home() {
   };
 
   const handleEmailSignIn = () => {
-    window.location.href = '/auth/signin';
+    router.push('/auth/signin');
   };
 
   if (loading) {
