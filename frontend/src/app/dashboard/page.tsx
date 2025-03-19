@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import supabase from '@/lib/supabase';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -23,11 +23,6 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend
-);
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 interface Content {
@@ -70,23 +65,53 @@ export default function Dashboard() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
-    checkUser();
-    fetchContents();
-  }, []);
+    const setupDashboard = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session error:', error);
+          router.push('/');
+          return;
+        }
 
-  const checkUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/');
-      } else {
+        if (!session) {
+          router.push('/');
+          return;
+        }
+
         setUser(session.user);
-        fetchAnalytics(session.user.id);
+        await Promise.all([
+          fetchContents(session.user.id),
+          fetchAnalytics(session.user.id)
+        ]);
+      } catch (error) {
+        console.error('Dashboard setup error:', error);
+        router.push('/');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error checking user:', error);
-    }
-  };
+    };
+
+    setupDashboard();
+
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/');
+      } else if (session) {
+        setUser(session.user);
+        await Promise.all([
+          fetchContents(session.user.id),
+          fetchAnalytics(session.user.id)
+        ]);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   const fetchAnalytics = async (userId: string) => {
     try {
@@ -125,29 +150,29 @@ export default function Dashboard() {
     }
   };
 
-  const fetchContents = async () => {
+  const fetchContents = async (userId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
       const { data, error } = await supabase
         .from('contents')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .order(sortBy, { ascending: sortOrder === 'asc' });
 
       if (error) throw error;
       setContents(data || []);
     } catch (error) {
       console.error('Error fetching contents:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -169,7 +194,7 @@ export default function Dashboard() {
 
       if (!response.ok) throw new Error('Upload failed');
 
-      await fetchContents();
+      await fetchContents(user.id);
       await fetchAnalytics(user.id);
       setShowUploadModal(false);
       setUploadData({ title: '', description: '', file: null });
@@ -191,7 +216,7 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      await fetchContents();
+      await fetchContents(user.id);
       await fetchAnalytics(user.id);
       setShowDeleteModal(false);
       setSelectedContent(null);
