@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import supabase from '@/lib/supabase';
 import { FaEye, FaTachometerAlt, FaBars, FaTimes, FaLock } from 'react-icons/fa';
 import { FiGithub, FiTwitter, FiLinkedin } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
@@ -14,10 +14,31 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const supabase = createClientComponentClient();
 
   useEffect(() => {
-    checkUser();
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setError('Failed to check authentication status');
+          return;
+        }
+
+        if (session) {
+          router.push('/dashboard');
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+        setError('Failed to check authentication status');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
 
     // Check for error parameter in URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -29,20 +50,18 @@ export default function Home() {
           : 'An error occurred during sign in.'
       );
     }
-  }, []);
 
-  const checkUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
         router.push('/dashboard');
       }
-    } catch (error) {
-      console.error('Error checking user:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -67,7 +86,6 @@ export default function Home() {
       }
 
       if (data?.url) {
-        console.log('Redirecting to:', data.url);
         window.location.href = data.url;
       }
     } catch (error: any) {
