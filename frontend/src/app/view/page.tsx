@@ -31,15 +31,23 @@ export default function ViewPage() {
   const [toastMessage, setToastMessage] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
   const sessionId = useRef(Math.random().toString(36).substring(7));
-  const watermarkPositions = useRef<{ x: number; y: number; rotation: number }[]>([]);
+  const watermarkPositions = useRef<{ x: number; y: number; rotation: number; opacity: number }[]>([]);
 
   // Initialize watermark positions
   useEffect(() => {
-    const positions = Array.from({ length: 5 }, () => ({
-      x: Math.random() * 80 + 10, // 10-90%
-      y: Math.random() * 80 + 10, // 10-90%
-      rotation: Math.random() * 30 - 15 // -15 to 15 degrees
-    }));
+    // Create a dense grid of watermarks
+    const positions = [];
+    // Horizontal watermarks every 100px
+    for (let y = 5; y <= 95; y += 15) {
+      for (let x = 5; x <= 95; x += 15) {
+        positions.push({
+          x,
+          y,
+          rotation: Math.random() * 360, // Full rotation for varied angles
+          opacity: Math.random() * 0.3 + 0.1 // Random opacity between 0.1 and 0.4
+        });
+      }
+    }
     watermarkPositions.current = positions;
   }, []);
 
@@ -157,6 +165,42 @@ export default function ViewPage() {
     };
   }, []);
 
+  // Prevent screenshots
+  useEffect(() => {
+    const preventScreenshot = (e: KeyboardEvent) => {
+      // Prevent common screenshot shortcuts
+      if (
+        (e.key === 'PrintScreen') ||
+        (e.ctrlKey && e.shiftKey && e.key === '3') || // Mac screenshot
+        (e.ctrlKey && e.shiftKey && e.key === '4') || // Mac area screenshot
+        (e.metaKey && e.shiftKey && e.key === '3') || // Mac screenshot
+        (e.metaKey && e.shiftKey && e.key === '4') || // Mac area screenshot
+        (e.ctrlKey && e.key === 'c') ||
+        (e.metaKey && e.key === 'c')
+      ) {
+        e.preventDefault();
+        showSecurityToast('Screenshots are not allowed');
+      }
+    };
+
+    // iOS/Android screenshot detection
+    if (typeof window !== 'undefined') {
+      document.addEventListener('keydown', preventScreenshot);
+      if ('hidden' in document) {
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            setIsBlurred(true);
+            showSecurityToast('Content protected - Screenshots disabled');
+          }
+        });
+      }
+    }
+
+    return () => {
+      document.removeEventListener('keydown', preventScreenshot);
+    };
+  }, []);
+
   const showSecurityToast = useCallback((message: string) => {
     setToastMessage(message);
     setShowToast(true);
@@ -228,31 +272,45 @@ export default function ViewPage() {
           className={`relative bg-white rounded-lg overflow-hidden transition-all duration-300 ${
             isBlurred ? 'blur-lg' : ''
           }`}
+          style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
         >
           {/* Dynamic Watermarks */}
           {watermarkPositions.current.map((pos, i) => (
             <div
               key={i}
-              className="absolute pointer-events-none select-none font-mono text-sm text-[#00C6B3]/15"
+              className="absolute pointer-events-none select-none z-10"
               style={{
                 left: `${pos.x}%`,
                 top: `${pos.y}%`,
                 transform: `rotate(${pos.rotation}deg)`,
-                whiteSpace: 'nowrap'
+                opacity: pos.opacity,
+                whiteSpace: 'nowrap',
+                textShadow: '0 0 2px rgba(0,0,0,0.5)',
+                fontSize: '0.7rem',
+                color: '#00C6B3'
               }}
             >
-              SecureView • {sessionId.current}
+              SecureView • {sessionId.current} • {content?.access_code}
             </div>
           ))}
 
-          {/* Content */}
-          <div className="aspect-w-16 aspect-h-9">
+          {/* Content with additional protection */}
+          <div className="aspect-w-16 aspect-h-9 relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent z-[5]" />
             <img
               src={content?.image_url}
               alt={content?.title}
               className="w-full h-full object-cover select-none"
               draggable="false"
+              onContextMenu={(e) => e.preventDefault()}
+              style={{
+                pointerEvents: 'none',
+                WebkitTouchCallout: 'none',
+                position: 'relative',
+                zIndex: 1
+              }}
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent z-[5]" />
           </div>
         </div>
       </main>
