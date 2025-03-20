@@ -48,21 +48,52 @@ export default function AccessPage() {
         .from('contents')
         .select('*')
         .eq('access_code', trimmedCode)
-        .single();
+        .maybeSingle();
 
       if (fetchError) {
         console.error('Error checking access code:', fetchError);
         if (fetchError.code === 'PGRST116') {
-          setError('Database permissions error. Please contact support.');
-        } else {
-          setError('Failed to verify access code');
+          // Try an alternative query
+          const { data: altData, error: altError } = await supabase
+            .from('contents')
+            .select('*')
+            .eq('access_code', trimmedCode.toUpperCase())
+            .maybeSingle();
+
+          if (altError) {
+            console.error('Error in alternative query:', altError);
+            setError('Failed to verify access code');
+            return;
+          }
+
+          if (altData) {
+            console.log('Content found with alternative query:', altData);
+            router.push(`/view?code=${encodeURIComponent(trimmedCode)}`);
+            return;
+          }
         }
+        setError('Failed to verify access code');
         return;
       }
 
       console.log('Query result:', data);
 
       if (!data) {
+        // Try one more time with case-insensitive search
+        const { data: caseInsensitiveData, error: caseError } = await supabase
+          .from('contents')
+          .select('*')
+          .ilike('access_code', trimmedCode)
+          .maybeSingle();
+
+        if (caseError) {
+          console.error('Error in case-insensitive search:', caseError);
+        } else if (caseInsensitiveData) {
+          console.log('Content found with case-insensitive search:', caseInsensitiveData);
+          router.push(`/view?code=${encodeURIComponent(trimmedCode)}`);
+          return;
+        }
+
         console.log('No content found for access code:', trimmedCode);
         setError('Invalid access code. Please check and try again.');
         return;
