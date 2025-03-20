@@ -35,80 +35,18 @@ export default function AccessPage() {
 
       console.log('Validating access code:', trimmedCode);
 
-      // Test database connection first
-      const { data: testData, error: testError } = await supabase
-        .from('contents')
-        .select('count')
-        .limit(1);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/content/${trimmedCode}`);
+      const data = await response.json();
 
-      if (testError) {
-        console.error('Database connection test error:', testError);
-        setError('Failed to connect to database. Please try again later.');
-        return;
+      if (!response.ok) {
+        throw new Error(data.error || 'Content not found');
       }
 
-      console.log('Database connection test result:', testData);
-
-      // Now try to find the specific content
-      const { data, error: fetchError } = await supabase
-        .from('contents')
-        .select('*')
-        .eq('access_code', trimmedCode)
-        .maybeSingle();
-
-      if (fetchError) {
-        console.error('Error checking access code:', fetchError);
-        if (fetchError.code === 'PGRST116') {
-          // Try a simpler query first
-          const { data: simpleData, error: simpleError } = await supabase
-            .from('contents')
-            .select('id, access_code')
-            .eq('access_code', trimmedCode)
-            .maybeSingle();
-
-          if (simpleError) {
-            console.error('Error in simple query:', simpleError);
-            setError('Failed to verify access code');
-            return;
-          }
-
-          if (simpleData) {
-            console.log('Content found with simple query:', simpleData);
-            router.push(`/view?code=${encodeURIComponent(trimmedCode)}`);
-            return;
-          }
-        }
-        setError('Failed to verify access code');
-        return;
-      }
-
-      console.log('Query result:', data);
-
-      if (!data) {
-        // Try one more time with a direct query
-        const { data: directData, error: directError } = await supabase
-          .from('contents')
-          .select('*')
-          .eq('access_code', trimmedCode)
-          .limit(1);
-
-        if (directError) {
-          console.error('Error in direct query:', directError);
-        } else {
-          console.log('Direct query result:', directData);
-        }
-
-        console.log('No content found for access code:', trimmedCode);
-        setError('Invalid access code. Please check and try again.');
-        return;
-      }
-
-      // If we found the content, show QR code option
       console.log('Content found:', data);
       generateQRCode();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error validating access code:', err);
-      setError('Failed to validate access code');
+      setError(err.message || 'Failed to validate access code');
     } finally {
       setLoading(false);
     }
