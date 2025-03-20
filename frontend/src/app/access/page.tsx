@@ -3,18 +3,28 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import supabase from '../../lib/supabase';
-import { ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { ShieldCheckIcon, QrCodeIcon } from '@heroicons/react/24/outline';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function AccessPage() {
   const router = useRouter();
   const [accessCode, setAccessCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+
+  const generateQRCode = () => {
+    const url = `${window.location.origin}/view?code=${encodeURIComponent(accessCode)}`;
+    setQrCodeUrl(url);
+    setShowQRCode(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setShowQRCode(false);
 
     try {
       const trimmedCode = accessCode.trim();
@@ -93,9 +103,9 @@ export default function AccessPage() {
         return;
       }
 
-      // If we found the content, redirect to view page
+      // If we found the content, show QR code option
       console.log('Content found:', data);
-      router.push(`/view?code=${encodeURIComponent(trimmedCode)}`);
+      generateQRCode();
     } catch (err) {
       console.error('Error validating access code:', err);
       setError('Failed to validate access code');
@@ -145,6 +155,26 @@ export default function AccessPage() {
             {loading ? 'Validating...' : 'View Content'}
           </button>
         </form>
+
+        {showQRCode && (
+          <div className="mt-8 text-center">
+            <div className="bg-white p-4 rounded-lg shadow-lg inline-block">
+              <QrCodeIcon className="w-8 h-8 text-[#00C6B3] mx-auto mb-2" />
+              <QRCodeSVG value={qrCodeUrl} size={200} />
+              <p className="mt-2 text-sm text-gray-600">
+                Scan this QR code to view the content on your mobile device
+              </p>
+            </div>
+            <div className="mt-4">
+              <button
+                onClick={() => router.push(`/view?code=${encodeURIComponent(accessCode)}`)}
+                className="text-sm text-[#00C6B3] hover:text-[#00a396]"
+              >
+                Or click here to view directly
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 text-center">
           <button
