@@ -25,25 +25,21 @@ export default function AccessPage() {
 
       console.log('Validating access code:', trimmedCode);
 
-      // First, let's see all contents in the database with RLS policies
-      const { data: allContents, error: listError } = await supabase
+      // Test database connection first
+      const { data: testData, error: testError } = await supabase
         .from('contents')
-        .select('id, title, access_code, created_at')
-        .order('created_at', { ascending: false });
+        .select('count')
+        .limit(1);
 
-      if (listError) {
-        console.error('Error listing all contents:', listError);
-        if (listError.code === 'PGRST116') {
-          setError('Database permissions error. Please contact support.');
-        } else {
-          setError('Failed to connect to database');
-        }
+      if (testError) {
+        console.error('Database connection test error:', testError);
+        setError('Failed to connect to database. Please try again later.');
         return;
       }
 
-      console.log('All contents in database:', allContents);
+      console.log('Database connection test result:', testData);
 
-      // Now try to find the specific content with RLS policies
+      // Now try to find the specific content
       const { data, error: fetchError } = await supabase
         .from('contents')
         .select('*')
@@ -53,21 +49,21 @@ export default function AccessPage() {
       if (fetchError) {
         console.error('Error checking access code:', fetchError);
         if (fetchError.code === 'PGRST116') {
-          // Try an alternative query
-          const { data: altData, error: altError } = await supabase
+          // Try a simpler query first
+          const { data: simpleData, error: simpleError } = await supabase
             .from('contents')
-            .select('*')
-            .eq('access_code', trimmedCode.toUpperCase())
+            .select('id, access_code')
+            .eq('access_code', trimmedCode)
             .maybeSingle();
 
-          if (altError) {
-            console.error('Error in alternative query:', altError);
+          if (simpleError) {
+            console.error('Error in simple query:', simpleError);
             setError('Failed to verify access code');
             return;
           }
 
-          if (altData) {
-            console.log('Content found with alternative query:', altData);
+          if (simpleData) {
+            console.log('Content found with simple query:', simpleData);
             router.push(`/view?code=${encodeURIComponent(trimmedCode)}`);
             return;
           }
@@ -79,19 +75,17 @@ export default function AccessPage() {
       console.log('Query result:', data);
 
       if (!data) {
-        // Try one more time with case-insensitive search
-        const { data: caseInsensitiveData, error: caseError } = await supabase
+        // Try one more time with a direct query
+        const { data: directData, error: directError } = await supabase
           .from('contents')
           .select('*')
-          .ilike('access_code', trimmedCode)
-          .maybeSingle();
+          .eq('access_code', trimmedCode)
+          .limit(1);
 
-        if (caseError) {
-          console.error('Error in case-insensitive search:', caseError);
-        } else if (caseInsensitiveData) {
-          console.log('Content found with case-insensitive search:', caseInsensitiveData);
-          router.push(`/view?code=${encodeURIComponent(trimmedCode)}`);
-          return;
+        if (directError) {
+          console.error('Error in direct query:', directError);
+        } else {
+          console.log('Direct query result:', directData);
         }
 
         console.log('No content found for access code:', trimmedCode);
