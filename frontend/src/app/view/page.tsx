@@ -24,7 +24,7 @@ export default function ViewPage() {
   const [content, setContent] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sessionTime, setSessionTime] = useState(3600); // 1 hour in seconds
+  const [sessionTime, setSessionTime] = useState(600); // 10 minutes in seconds
   const [isBlurred, setIsBlurred] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -35,18 +35,27 @@ export default function ViewPage() {
 
   // Initialize watermark positions
   useEffect(() => {
-    // Create a dense grid of watermarks
+    // Create a more balanced grid of watermarks
     const positions = [];
-    // Horizontal watermarks every 100px
-    for (let y = 5; y <= 95; y += 15) {
-      for (let x = 5; x <= 95; x += 15) {
+    // Reduced density - every 25% instead of 15%
+    for (let y = 10; y <= 90; y += 25) {
+      for (let x = 10; x <= 90; x += 25) {
         positions.push({
           x,
           y,
-          rotation: Math.random() * 360, // Full rotation for varied angles
-          opacity: Math.random() * 0.3 + 0.1 // Random opacity between 0.1 and 0.4
+          rotation: Math.random() * 360,
+          opacity: 0.4 // Increased base opacity but fewer marks
         });
       }
+    }
+    // Add some random positions for unpredictability
+    for (let i = 0; i < 5; i++) {
+      positions.push({
+        x: Math.random() * 80 + 10,
+        y: Math.random() * 80 + 10,
+        rotation: Math.random() * 360,
+        opacity: 0.4
+      });
     }
     watermarkPositions.current = positions;
   }, []);
@@ -165,39 +174,51 @@ export default function ViewPage() {
     };
   }, []);
 
-  // Prevent screenshots
+  // Enhanced screenshot prevention for mobile
   useEffect(() => {
-    const preventScreenshot = (e: KeyboardEvent) => {
-      // Prevent common screenshot shortcuts
-      if (
-        (e.key === 'PrintScreen') ||
-        (e.ctrlKey && e.shiftKey && e.key === '3') || // Mac screenshot
-        (e.ctrlKey && e.shiftKey && e.key === '4') || // Mac area screenshot
-        (e.metaKey && e.shiftKey && e.key === '3') || // Mac screenshot
-        (e.metaKey && e.shiftKey && e.key === '4') || // Mac area screenshot
-        (e.ctrlKey && e.key === 'c') ||
-        (e.metaKey && e.key === 'c')
-      ) {
-        e.preventDefault();
-        showSecurityToast('Screenshots are not allowed');
+    let blurTimeout: NodeJS.Timeout;
+    const preventScreenshotMobile = () => {
+      setIsBlurred(true);
+      showSecurityToast('Screenshots not allowed');
+      
+      // Clear any existing timeout
+      if (blurTimeout) clearTimeout(blurTimeout);
+      
+      // Keep content blurred for longer
+      blurTimeout = setTimeout(() => {
+        setIsBlurred(false);
+      }, 2000);
+    };
+
+    // Continuous check for screenshot attempts
+    const checkInterval = setInterval(() => {
+      if (document.hidden) {
+        preventScreenshotMobile();
+      }
+    }, 500);
+
+    // iOS screenshot detection
+    const handleTouchStart = () => {
+      preventScreenshotMobile();
+    };
+
+    // Android screenshot detection
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        preventScreenshotMobile();
       }
     };
 
-    // iOS/Android screenshot detection
     if (typeof window !== 'undefined') {
-      document.addEventListener('keydown', preventScreenshot);
-      if ('hidden' in document) {
-        document.addEventListener('visibilitychange', () => {
-          if (document.hidden) {
-            setIsBlurred(true);
-            showSecurityToast('Content protected - Screenshots disabled');
-          }
-        });
-      }
+      window.addEventListener('touchstart', handleTouchStart, { passive: false });
+      document.addEventListener('visibilitychange', handleVisibilityChange);
     }
 
     return () => {
-      document.removeEventListener('keydown', preventScreenshot);
+      if (blurTimeout) clearTimeout(blurTimeout);
+      clearInterval(checkInterval);
+      window.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -272,7 +293,13 @@ export default function ViewPage() {
           className={`relative bg-white rounded-lg overflow-hidden transition-all duration-300 ${
             isBlurred ? 'blur-lg' : ''
           }`}
-          style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+          style={{ 
+            userSelect: 'none', 
+            WebkitUserSelect: 'none',
+            WebkitTouchCallout: 'none',
+            msUserSelect: 'none',
+            touchAction: 'none'
+          }}
         >
           {/* Dynamic Watermarks */}
           {watermarkPositions.current.map((pos, i) => (
@@ -285,9 +312,11 @@ export default function ViewPage() {
                 transform: `rotate(${pos.rotation}deg)`,
                 opacity: pos.opacity,
                 whiteSpace: 'nowrap',
-                textShadow: '0 0 2px rgba(0,0,0,0.5)',
-                fontSize: '0.7rem',
-                color: '#00C6B3'
+                textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                color: '#00C6B3',
+                mixBlendMode: 'difference'
               }}
             >
               SecureView • {sessionId.current} • {content?.access_code}
@@ -296,7 +325,7 @@ export default function ViewPage() {
 
           {/* Content with additional protection */}
           <div className="aspect-w-16 aspect-h-9 relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent z-[5]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/20 z-[5]" />
             <img
               src={content?.image_url}
               alt={content?.title}
@@ -307,10 +336,19 @@ export default function ViewPage() {
                 pointerEvents: 'none',
                 WebkitTouchCallout: 'none',
                 position: 'relative',
-                zIndex: 1
+                zIndex: 1,
+                filter: 'contrast(1.05)',
+                mixBlendMode: 'normal'
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent z-[5]" />
+            <div 
+              className="absolute inset-0 z-[2]" 
+              style={{ 
+                background: 'radial-gradient(circle at center, transparent 30%, rgba(0,198,179,0.03) 70%)',
+                mixBlendMode: 'overlay',
+                pointerEvents: 'none'
+              }} 
+            />
           </div>
         </div>
       </main>
