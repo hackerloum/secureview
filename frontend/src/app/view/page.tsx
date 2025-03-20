@@ -57,32 +57,11 @@ export default function ViewPage() {
         const cleanCode = decodeURIComponent(accessCode).trim();
         console.log('Attempting to fetch content with code:', cleanCode);
 
-        // First, let's check what's in the database
-        const { data: allContents, error: debugError } = await supabase
-          .from('contents')
-          .select('id, access_code');
-        
-        console.log('All contents in database:', allContents);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/content/${cleanCode}`);
+        const data = await response.json();
 
-        // Now try to fetch the specific content
-        const { data, error: fetchError } = await supabase
-          .from('contents')
-          .select('*')
-          .eq('access_code', cleanCode)
-          .maybeSingle();
-
-        if (fetchError) {
-          console.error('Supabase error:', fetchError);
-          setError('Failed to load content');
-          return;
-        }
-
-        console.log('Query result:', data);
-
-        if (!data) {
-          console.log('No content found for access code:', cleanCode);
-          setError('Invalid access code. Please check and try again.');
-          return;
+        if (!response.ok) {
+          throw new Error(data.error || 'Content not found');
         }
 
         console.log('Content found:', data);
