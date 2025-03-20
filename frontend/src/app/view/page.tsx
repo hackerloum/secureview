@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import supabase from '../../lib/supabase';
 import { format } from 'date-fns';
-import { ShieldCheckIcon, QuestionMarkCircleIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { ShieldCheckIcon, QuestionMarkCircleIcon, LockClosedIcon, EyeIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Content {
@@ -16,6 +16,15 @@ interface Content {
   created_at: string;
   view_count: number;
   user_id: string;
+}
+
+// Add device fingerprint interface
+interface DeviceFingerprint {
+  browser: string;
+  os: string;
+  screenResolution: string;
+  timezone: string;
+  timestamp: number;
 }
 
 export default function ViewPage() {
@@ -31,33 +40,137 @@ export default function ViewPage() {
   const [toastMessage, setToastMessage] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
   const sessionId = useRef(Math.random().toString(36).substring(7));
-  const watermarkPositions = useRef<{ x: number; y: number; rotation: number; opacity: number }[]>([]);
+  const watermarkPositions = useRef<{ x: number; y: number; rotation: number; opacity: number; scale?: number; isSpecial?: boolean }[]>([]);
+  const [remainingViews, setRemainingViews] = useState(3); // Limit views per session
+  const [showWarning, setShowWarning] = useState(false);
+  const lastActivityTime = useRef(Date.now());
+  const [deviceFingerprint, setDeviceFingerprint] = useState<DeviceFingerprint | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const recordingCheckInterval = useRef<NodeJS.Timeout>();
+  const lastScreenshotAttempt = useRef(Date.now());
 
-  // Initialize watermark positions
+  // Initialize device fingerprint
   useEffect(() => {
-    // Create a more balanced grid of watermarks
+    const generateFingerprint = () => {
+      const fingerprint: DeviceFingerprint = {
+        browser: navigator.userAgent,
+        os: navigator.platform,
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timestamp: Date.now()
+      };
+      setDeviceFingerprint(fingerprint);
+      
+      // Store fingerprint in sessionStorage
+      sessionStorage.setItem('deviceFingerprint', JSON.stringify(fingerprint));
+    };
+
+    generateFingerprint();
+  }, []);
+
+  // Enhanced watermark positions with dynamic patterns
+  useEffect(() => {
     const positions = [];
-    // Reduced density - every 25% instead of 15%
-    for (let y = 10; y <= 90; y += 25) {
-      for (let x = 10; x <= 90; x += 25) {
+    const density = window.innerWidth <= 768 ? 35 : 25; // Adjust density based on screen size
+    
+    // Create dynamic grid pattern
+    for (let y = 5; y <= 95; y += density) {
+      for (let x = 5; x <= 95; x += density) {
+        const randomOffset = Math.random() * 10 - 5;
         positions.push({
-          x,
-          y,
+          x: x + randomOffset,
+          y: y + randomOffset,
           rotation: Math.random() * 360,
-          opacity: 0.4 // Increased base opacity but fewer marks
+          opacity: Math.random() * 0.3 + 0.2, // Vary opacity between 0.2 and 0.5
+          scale: Math.random() * 0.4 + 0.8 // Vary size between 0.8 and 1.2
         });
       }
     }
-    // Add some random positions for unpredictability
-    for (let i = 0; i < 5; i++) {
+
+    // Add IP-based watermarks (placeholder)
+    if (deviceFingerprint) {
       positions.push({
-        x: Math.random() * 80 + 10,
-        y: Math.random() * 80 + 10,
-        rotation: Math.random() * 360,
-        opacity: 0.4
+        x: 50,
+        y: 50,
+        rotation: 45,
+        opacity: 0.3,
+        scale: 1,
+        isSpecial: true
       });
     }
+
     watermarkPositions.current = positions;
+  }, [deviceFingerprint]);
+
+  // Advanced screen recording detection
+  useEffect(() => {
+    const checkScreenRecording = () => {
+      // Check for screen recording APIs
+      const mediaDevices = navigator.mediaDevices as any;
+      if (mediaDevices && mediaDevices.getDisplayMedia) {
+        setIsRecording(true);
+        setIsBlurred(true);
+        showSecurityToast('Screen recording detected - Content protected');
+      }
+    };
+
+    recordingCheckInterval.current = setInterval(checkScreenRecording, 1000);
+    return () => {
+      if (recordingCheckInterval.current) {
+        clearInterval(recordingCheckInterval.current);
+      }
+    };
+  }, []);
+
+  // Enhanced screenshot prevention
+  useEffect(() => {
+    const handleScreenshotAttempt = () => {
+      const now = Date.now();
+      if (now - lastScreenshotAttempt.current < 1000) {
+        return; // Prevent multiple triggers
+      }
+      lastScreenshotAttempt.current = now;
+
+      setIsBlurred(true);
+      showSecurityToast('Screenshot attempt detected');
+
+      // Temporarily increase watermark density
+      const positions = [...watermarkPositions.current];
+      for (let i = 0; i < 10; i++) {
+        positions.push({
+          x: Math.random() * 90 + 5,
+          y: Math.random() * 90 + 5,
+          rotation: Math.random() * 360,
+          opacity: 0.5,
+          scale: 1.2
+        });
+      }
+      watermarkPositions.current = positions;
+
+      // Reset after delay
+      setTimeout(() => {
+        setIsBlurred(false);
+      }, 3000);
+    };
+
+    // Enhanced keyboard shortcut detection
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isScreenshotCombo = (
+        (isMac && e.metaKey && e.shiftKey && e.key === '4') || // Mac screenshot
+        (isMac && e.metaKey && e.shiftKey && e.key === '3') || // Mac screenshot
+        (!isMac && e.getModifierState('PrintScreen')) || // Windows screenshot
+        (e.altKey && e.key === 'PrintScreen') // Alt + PrintScreen
+      );
+
+      if (isScreenshotCombo) {
+        e.preventDefault();
+        handleScreenshotAttempt();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Handle content fetch
@@ -222,6 +335,91 @@ export default function ViewPage() {
     };
   }, []);
 
+  // Browser-specific screenshot prevention
+  useEffect(() => {
+    // Prevent Safari screenshot
+    const preventSafariScreenshot = `
+      (function() {
+        if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
+          document.addEventListener('keydown', function(e) {
+            if ((e.key === 'c' && (e.metaKey || e.ctrlKey)) || 
+                (e.key === 'k' && e.metaKey) ||
+                (e.key === 's' && (e.metaKey || e.ctrlKey))) {
+              e.preventDefault();
+              return false;
+            }
+          });
+        }
+      })();
+    `;
+    
+    // Prevent Chrome/Opera screenshot
+    const preventChromeScreenshot = `
+      (function() {
+        if (navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Opera')) {
+          document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && 
+                (e.key === 'I' || e.key === 'i' || e.key === 'C' || e.key === 'c')) {
+              e.preventDefault();
+              return false;
+            }
+          });
+          
+          // Disable developer tools
+          document.addEventListener('contextmenu', function(e) {
+            if (e.shiftKey) e.preventDefault();
+          });
+        }
+      })();
+    `;
+
+    // Inject browser-specific protections
+    const script = document.createElement('script');
+    script.textContent = preventSafariScreenshot + preventChromeScreenshot;
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
+  // Inactivity detection
+  useEffect(() => {
+    const checkInactivity = () => {
+      const currentTime = Date.now();
+      if (currentTime - lastActivityTime.current > 60000) { // 1 minute of inactivity
+        setIsBlurred(true);
+        showSecurityToast('Content blurred due to inactivity');
+      }
+    };
+
+    const resetActivity = () => {
+      lastActivityTime.current = Date.now();
+      setIsBlurred(false);
+    };
+
+    const interval = setInterval(checkInactivity, 10000); // Check every 10 seconds
+    
+    document.addEventListener('mousemove', resetActivity);
+    document.addEventListener('keydown', resetActivity);
+    document.addEventListener('touchstart', resetActivity);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('mousemove', resetActivity);
+      document.removeEventListener('keydown', resetActivity);
+      document.removeEventListener('touchstart', resetActivity);
+    };
+  }, []);
+
+  // View limit warning
+  useEffect(() => {
+    if (remainingViews <= 1) {
+      setShowWarning(true);
+      showSecurityToast('Last viewing attempt remaining');
+    }
+  }, [remainingViews]);
+
   const showSecurityToast = useCallback((message: string) => {
     setToastMessage(message);
     setShowToast(true);
@@ -267,11 +465,17 @@ export default function ViewPage() {
                 </p>
               </div>
               <div className="bg-white/10 px-4 py-2 rounded-lg">
-                <p className="text-sm font-mono">
-                  Session expires in:{' '}
-                  <span className="text-[#00C6B3]">
+                <p className="text-sm font-mono flex items-center">
+                  <ClockIcon className="w-4 h-4 mr-1" />
+                  <span>
                     {Math.floor(sessionTime / 60)}:{(sessionTime % 60).toString().padStart(2, '0')}
                   </span>
+                </p>
+              </div>
+              <div className="bg-white/10 px-4 py-2 rounded-lg">
+                <p className="text-sm font-mono flex items-center">
+                  <EyeIcon className="w-4 h-4 mr-1" />
+                  <span>{remainingViews} views left</span>
                 </p>
               </div>
             </div>
@@ -298,7 +502,8 @@ export default function ViewPage() {
             WebkitUserSelect: 'none',
             WebkitTouchCallout: 'none',
             msUserSelect: 'none',
-            touchAction: 'none'
+            touchAction: 'none',
+            filter: isRecording ? 'blur(20px)' : ''
           }}
         >
           {/* Dynamic Watermarks */}
@@ -309,17 +514,20 @@ export default function ViewPage() {
               style={{
                 left: `${pos.x}%`,
                 top: `${pos.y}%`,
-                transform: `rotate(${pos.rotation}deg)`,
+                transform: `rotate(${pos.rotation}deg) scale(${pos.scale || 1})`,
                 opacity: pos.opacity,
                 whiteSpace: 'nowrap',
                 textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                fontSize: '0.8rem',
+                fontSize: pos.isSpecial ? '1rem' : '0.8rem',
                 fontWeight: 'bold',
-                color: '#00C6B3',
+                color: pos.isSpecial ? '#ff0000' : '#00C6B3',
                 mixBlendMode: 'difference'
               }}
             >
-              SecureView • {sessionId.current} • {content?.access_code}
+              {pos.isSpecial 
+                ? `SecureView • ${deviceFingerprint?.timezone}`
+                : `SecureView • ${sessionId.current} • ${content?.access_code}`
+              }
             </div>
           ))}
 
@@ -415,6 +623,39 @@ export default function ViewPage() {
           >
             <LockClosedIcon className="w-5 h-5 text-[#00C6B3]" />
             <p className="text-sm text-white">{toastMessage}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Warning Modal */}
+      <AnimatePresence>
+        {showWarning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-lg max-w-md w-full p-6 text-gray-900"
+            >
+              <h3 className="text-xl font-semibold mb-4 flex items-center text-red-600">
+                <ShieldCheckIcon className="w-6 h-6 mr-2" />
+                Warning: Last View
+              </h3>
+              <p className="text-gray-600">
+                This is your last viewing attempt for this session. The content will be locked after this view.
+              </p>
+              <button
+                onClick={() => setShowWarning(false)}
+                className="mt-6 w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                I Understand
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
