@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { toast } from 'react-hot-toast';
@@ -12,6 +12,27 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('is_super_admin')
+          .eq('id', session.user.id)
+          .single();
+
+        if (userData?.is_super_admin) {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
+      }
+    };
+
+    checkSession();
+  }, [router]);
 
   const handleGoogleSignIn = async () => {
     try {
