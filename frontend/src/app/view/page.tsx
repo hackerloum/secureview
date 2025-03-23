@@ -446,14 +446,27 @@ export default function ViewPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A1A2F]">
         <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 text-center">
-          <ShieldCheckIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <svg
+            className="w-16 h-16 text-red-500 mx-auto mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
+          </svg>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => router.push('/')}
-            className="bg-[#0A1A2F] text-white px-6 py-2 rounded-lg hover:bg-opacity-90 transition-colors"
+            className="text-sm text-gray-600 hover:text-gray-900"
           >
-            Return Home
+            Return to Home
           </button>
         </div>
       </div>
@@ -474,25 +487,70 @@ export default function ViewPage() {
               </div>
               <div className="bg-white/10 px-4 py-2 rounded-lg">
                 <p className="text-sm font-mono flex items-center">
-                  <ClockIcon className="w-4 h-4 mr-1" />
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
                   <span>
-                    {Math.floor(sessionTime / 60)}:{(sessionTime % 60).toString().padStart(2, '0')}
+                    {Math.floor(sessionTime / 60)}:{(sessionTime % 60).toString().padStart(2, '0')} 
                   </span>
                 </p>
               </div>
               <div className="bg-white/10 px-4 py-2 rounded-lg">
                 <p className="text-sm font-mono flex items-center">
-                  <EyeIcon className="w-4 h-4 mr-1" />
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
                   <span>{remainingViews} views left</span>
                 </p>
               </div>
             </div>
             <button
               onClick={() => setShowHelpModal(true)}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
               aria-label="Help"
             >
-              <QuestionMarkCircleIcon className="w-6 h-6 text-[#00C6B3]" />
+              <svg
+                className="w-6 h-6 text-[#00C6B3]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
             </button>
           </div>
         </div>
@@ -556,7 +614,20 @@ export default function ViewPage() {
               Protected by SecureView • Session ID: {sessionId.current}
             </p>
             <div className="flex items-center space-x-2">
-              <ShieldCheckIcon className="w-4 h-4 text-[#00C6B3]" />
+              <svg
+                className="w-4 h-4 text-[#00C6B3]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
+              </svg>
               <span className="text-sm text-white/60">Secure Viewing Active</span>
             </div>
           </div>
@@ -579,7 +650,20 @@ export default function ViewPage() {
               className="bg-white rounded-lg max-w-md w-full p-6 text-gray-900"
             >
               <h3 className="text-xl font-semibold mb-4 flex items-center">
-                <ShieldCheckIcon className="w-6 h-6 text-[#00C6B3] mr-2" />
+                <svg
+                  className="w-6 h-6 text-[#00C6B3] mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
+                </svg>
                 Security Guidelines
               </h3>
               <div className="space-y-4 text-gray-600">
@@ -608,7 +692,20 @@ export default function ViewPage() {
             exit={{ opacity: 0, y: 50 }}
             className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-white/10 backdrop-blur-md rounded-lg px-4 py-3 flex items-center space-x-2"
           >
-            <LockClosedIcon className="w-5 h-5 text-[#00C6B3]" />
+            <svg
+              className="w-5 h-5 text-[#00C6B3]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
             <p className="text-sm text-white">{toastMessage}</p>
           </motion.div>
         )}
@@ -630,7 +727,20 @@ export default function ViewPage() {
               className="bg-white rounded-lg max-w-md w-full p-6 text-gray-900"
             >
               <h3 className="text-xl font-semibold mb-4 flex items-center text-red-600">
-                <ShieldCheckIcon className="w-6 h-6 mr-2" />
+                <svg
+                  className="w-6 h-6 text-[#00C6B3] mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
+                </svg>
                 Warning: Last View
               </h3>
               <p className="text-gray-600">
