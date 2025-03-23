@@ -1,10 +1,11 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import { createClient } from '@supabase/supabase-js';
 import { v2 as cloudinary } from 'cloudinary';
 import multer from 'multer';
+import { subDays } from 'date-fns';
 
 dotenv.config();
 
@@ -242,6 +243,185 @@ app.get('/api/user-limits/:userId', async (req: Request, res: Response) => {
     res.json(data);
   } catch (error: any) {
     console.error('Get user limits error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Admin middleware to check if user is admin
+const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { data: userData, error } = await supabase
+      .from('users')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (error || !userData?.is_admin) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Admin check error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// Get all users (admin only)
+app.get('/api/admin/users', isAdmin, async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        *,
+        user_limits (
+          upload_limit,
+          current_uploads
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const users = data.map(user => ({
+      ...user,
+      upload_limit: user.user_limits?.[0]?.upload_limit || 5,
+      current_uploads: user.user_limits?.[0]?.current_uploads || 0
+    }));
+
+    res.json(users);
+  } catch (error: any) {
+    console.error('Get users error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get all content with user details (admin only)
+app.get('/api/admin/contents', isAdmin, async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('contents')
+      .select(`
+        *,
+        users:user_id (
+          email
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error: any) {
+    console.error('Get contents error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get analytics data (admin only)
+app.get('/api/admin/analytics', isAdmin, async (req: Request, res: Response) => {
+  try {
+    const days = parseInt(req.query.days as string) || 7;
+
+    // Get total counts
+    const [
+      { count: totalUsers },
+      { count: totalContent },
+      { count: totalViews }
+    ] = await Promise.all([
+      supabase.from('users').select('*', { count: 'exact', head: true }),
+      supabase.from('contents').select('*', { count: 'exact', head: true }),
+      supabase.from('content_views').select('*', { count: 'exact', head: true })
+    ]);
+
+    // Get recent views
+    const { data: recentViews, error: viewsError } = await supabase
+      .from('content_views')
+      .select('created_at')
+      .gte('created_at', subDays(new Date(), days).toISOString())
+      .order('created_at', { ascending: true });
+
+    if (viewsError) throw viewsError;
+
+    // Get recent uploads
+    const { data: recentUploads, error: uploadsError } = await supabase
+      .from('contents')
+      .select('created_at')
+      .gte('created_at', subDays(new Date(), days).toISOString())
+      .order('created_at', { ascending: true });
+
+    if (uploadsError) throw uploadsError;
+
+    res.json({
+      totalUsers: totalUsers || 0,
+      totalContent: totalContent || 0,
+      totalViews: totalViews || 0,
+      recentViews: recentViews || [],
+      recentUploads: recentUploads || []
+    });
+  } catch (error: any) {
+    console.error('Get analytics error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Update user upload limit (admin only)
+app.put('/api/admin/users/:userId/limit', isAdmin, async (req: Request, res: Response) => {
+  try {
+    const { upload_limit } = req.body;
+    if (!upload_limit || upload_limit < 1) {
+      return res.status(400).json({ error: 'Invalid upload limit' });
+    }
+
+    const { error } = await supabase
+      .from('user_limits')
+      .update({ upload_limit })
+      .eq('user_id', req.params.userId);
+
+    if (error) throw error;
+
+    res.json({ message: 'Upload limit updated successfully' });
+  } catch (error: any) {
+    console.error('Update user limit error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Delete user and all their content (admin only)
+app.delete('/api/admin/users/:userId', isAdmin, async (req: Request, res: Response) => {
+  try {
+    // Delete user's content first
+    const { error: contentError } = await supabase
+      .from('contents')
+      .delete()
+      .eq('user_id', req.params.userId);
+
+    if (contentError) throw contentError;
+
+    // Delete user's limits
+    const { error: limitError } = await supabase
+      .from('user_limits')
+      .delete()
+      .eq('user_id', req.params.userId);
+
+    if (limitError) throw limitError;
+
+    // Delete user
+    const { error: userError } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', req.params.userId);
+
+    if (userError) throw userError;
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error: any) {
+    console.error('Delete user error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
