@@ -66,6 +66,7 @@ interface UserLimit {
 export default function Dashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [loadingState, setLoadingState] = useState<'initial' | 'uploading' | 'deleting'>('initial');
   const [user, setUser] = useState<any>(null);
   const [contents, setContents] = useState<Content[]>([]);
   const [analytics, setAnalytics] = useState<Analytics>({
@@ -212,11 +213,12 @@ export default function Dashboard() {
     if (!uploadData.file || !user) return;
 
     if (userLimit && userLimit.current_uploads >= userLimit.upload_limit) {
-      toast.error('You have reached your upload limit. Please contact customer support to increase your limit.');
+      toast.error('You have reached your upload limit. Please contact us on WhatsApp at +255772484738 to increase your limit.');
       return;
     }
 
     setLoading(true);
+    setLoadingState('uploading');
 
     try {
       const formData = new FormData();
@@ -241,12 +243,14 @@ export default function Dashboard() {
       console.error('Error uploading:', error);
     } finally {
       setLoading(false);
+      setLoadingState('initial');
     }
   };
 
   const handleDelete = async (contentId: string) => {
     try {
       setLoading(true);
+      setLoadingState('deleting');
       const { error } = await supabase
         .from('contents')
         .delete()
@@ -263,6 +267,7 @@ export default function Dashboard() {
       console.error('Error deleting content:', error);
     } finally {
       setLoading(false);
+      setLoadingState('initial');
     }
   };
 
@@ -356,8 +361,16 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#0A1A2F]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00C6B3] mb-4"></div>
-        <p className="text-white text-lg">Please wait while we process your upload...</p>
-        <p className="text-white/60 text-sm mt-2">This may take a few moments depending on file size</p>
+        <p className="text-white text-lg">
+          {loadingState === 'initial' && 'Loading your dashboard...'}
+          {loadingState === 'uploading' && 'Please wait while we process your upload...'}
+          {loadingState === 'deleting' && 'Deleting content...'}
+        </p>
+        <p className="text-white/60 text-sm mt-2">
+          {loadingState === 'initial' && 'Preparing your workspace'}
+          {loadingState === 'uploading' && 'This may take a few moments depending on file size'}
+          {loadingState === 'deleting' && 'Please wait while we remove the content'}
+        </p>
       </div>
     );
   }
@@ -768,12 +781,14 @@ export default function Dashboard() {
                 </p>
               </div>
               {userLimit.current_uploads >= userLimit.upload_limit && (
-                <button
-                  onClick={() => window.location.href = 'mailto:support@secureview.com?subject=Upload Limit Increase Request'}
+                <a
+                  href="http://wa.me/255772484738"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                 >
                   Contact Support
-                </button>
+                </a>
               )}
             </div>
             <div className="mt-2 w-full bg-gray-200 rounded-full h-2.5">
