@@ -23,6 +23,9 @@ const nextConfig = {
   generateEtags: false,
   reactStrictMode: true,
   swcMinify: true,
+  assetPrefix: '/',
+  basePath: '',
+  distDir: 'out',
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
