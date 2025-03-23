@@ -1,6 +1,29 @@
 export interface Database {
   public: {
     Tables: {
+      users: {
+        Row: {
+          id: string;
+          email: string;
+          created_at: string;
+          last_sign_in: string;
+          is_admin: boolean;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          created_at?: string;
+          last_sign_in?: string;
+          is_admin?: boolean;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          created_at?: string;
+          last_sign_in?: string;
+          is_admin?: boolean;
+        };
+      };
       contents: {
         Row: {
           id: string;
