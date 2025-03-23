@@ -18,6 +18,8 @@ const nextConfig = {
   compiler: {
     styledComponents: true,
   },
+  poweredByHeader: false,
+  generateEtags: false,
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
