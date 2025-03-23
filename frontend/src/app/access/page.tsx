@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import supabase from '../../lib/supabase';
-import QRCode from 'react-qr-code';
+import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 
 export default function AccessPage() {
@@ -124,7 +124,7 @@ export default function AccessPage() {
                   d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
                 />
               </svg>
-              <QRCode value={qrCodeUrl} size={200} />
+              <QRCodeSVG value={qrCodeUrl} size={200} />
               <p className="mt-2 text-sm text-gray-600">
                 Scan this QR code to view the content on your mobile device
               </p>
