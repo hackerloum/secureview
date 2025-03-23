@@ -103,7 +103,7 @@ app.post('/api/upload', upload.single('file'), async (req: Request, res: Respons
     if (userLimit && userLimit.current_uploads >= userLimit.upload_limit) {
       return res.status(403).json({ 
         error: 'Upload limit reached',
-        message: 'You have reached your upload limit. Please contact us on WhatsApp at +255737484735 to increase your limit.',
+        message: 'You have reached your upload limit. Please contact us on WhatsApp at +255772484738 to increase your limit.',
         current: userLimit.current_uploads,
         limit: userLimit.upload_limit
       });
