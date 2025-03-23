@@ -40,7 +40,7 @@ export default function ViewPage() {
   const [toastMessage, setToastMessage] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
   const sessionId = useRef(Math.random().toString(36).substring(7));
-  const watermarkPositions = useRef<{ x: number; y: number; rotation: number; opacity: number; scale?: number; isSpecial?: boolean }[]>([]);
+  const watermarkPositions = useRef<{ x: number; y: number; rotation: number; opacity: number; scale?: number; isSpecial?: boolean; text?: string }[]>([]);
   const [remainingViews, setRemainingViews] = useState(3); // Limit views per session
   const [showWarning, setShowWarning] = useState(false);
   const lastActivityTime = useRef(Date.now());
@@ -87,20 +87,21 @@ export default function ViewPage() {
       }
     }
 
-    // Add IP-based watermarks (placeholder)
-    if (deviceFingerprint) {
+    // Add special watermarks with access code and session ID
+    if (content?.access_code) {
       positions.push({
         x: 50,
         y: 50,
         rotation: 45,
         opacity: 0.3,
         scale: 1,
-        isSpecial: true
+        isSpecial: true,
+        text: `${content.access_code} | ${sessionId.current}`
       });
     }
 
     watermarkPositions.current = positions;
-  }, [deviceFingerprint]);
+  }, [content?.access_code]);
 
   // Advanced screen recording detection
   useEffect(() => {
@@ -436,8 +437,10 @@ export default function ViewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A1A2F]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00C6B3]"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0A1A2F]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00C6B3] mb-4"></div>
+        <p className="text-white text-lg">Loading your secure content...</p>
+        <p className="text-white/60 text-sm mt-2">Please wait while we verify your access</p>
       </div>
     );
   }
@@ -595,7 +598,7 @@ export default function ViewPage() {
                           opacity: pos.opacity,
                         }}
                       >
-                        {deviceFingerprint?.browser.slice(0, 8)}
+                        {pos.isSpecial ? pos.text : deviceFingerprint?.browser.slice(0, 8)}
                       </div>
                     ))}
                   </div>
