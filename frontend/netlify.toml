@@ -1,13 +1,34 @@
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "out"
 
 [[redirects]]
   from = "/_next/static/*"
   to = "/_next/static/:splat"
   status = 200
   force = true
-  headers = {X-Custom-Header = "static"}
+  headers = {
+    X-Custom-Header = "static",
+    Content-Type = "application/javascript"
+  }
+
+[[redirects]]
+  from = "/_next/static/css/*"
+  to = "/_next/static/css/:splat"
+  status = 200
+  force = true
+  headers = {
+    Content-Type = "text/css"
+  }
+
+[[redirects]]
+  from = "/_next/static/media/*"
+  to = "/_next/static/media/:splat"
+  status = 200
+  force = true
+  headers = {
+    Content-Type = "font/woff2"
+  }
 
 [[redirects]]
   from = "/_next/*"
@@ -17,9 +38,8 @@
 
 [[redirects]]
   from = "/*"
-  to = "/.netlify/functions/server"
+  to = "/index.html"
   status = 200
-  force = true
 
 [build.environment]
   NEXT_PUBLIC_SUPABASE_URL = "https://jefvnmetxmksadywqfyy.supabase.co"
