@@ -11,38 +11,40 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        // Get the current session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) throw error;
 
-        if (session?.user) {
-          // Check if user is super admin
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('is_super_admin')
-            .eq('id', session.user.id)
-            .single();
+        if (!session?.user) {
+          router.replace('/login');
+          return;
+        }
 
-          if (userError) {
-            console.error('Error checking admin status:', userError);
-            toast.error('Error checking admin status');
-            router.push('/login');
-            return;
-          }
+        // Check if user is super admin
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('is_super_admin')
+          .eq('id', session.user.id)
+          .single();
 
-          // Redirect based on admin status
-          if (userData?.is_super_admin) {
-            router.push('/admin');
-          } else {
-            router.push('/dashboard');
-          }
+        if (userError) {
+          console.error('Error checking admin status:', userError);
+          toast.error('Error checking admin status');
+          router.replace('/login');
+          return;
+        }
+
+        // Redirect based on admin status
+        if (userData?.is_super_admin) {
+          router.replace('/admin');
         } else {
-          router.push('/login');
+          router.replace('/dashboard');
         }
       } catch (error) {
         console.error('Error in auth callback:', error);
         toast.error('Authentication error');
-        router.push('/login');
+        router.replace('/login');
       }
     };
 
