@@ -7,19 +7,13 @@ module.exports = {
   ],
   theme: {
     extend: {
-      colors: {
-        primary: '#4F46E5',
-        secondary: '#6B7280',
-      },
-      fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
     },
   },
   plugins: [
     require('@tailwindcss/forms'),
   ],
-  future: {
-    hoverOnlyWhenSupported: true,
-  },
 } 
