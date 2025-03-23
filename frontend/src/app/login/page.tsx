@@ -2,21 +2,21 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import supabase from '../../lib/supabase';
-import toast from 'react-hot-toast';
+import { supabase } from '@/utils/supabase';
+import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleGoogleSignIn = async () => {
     try {
-      setLoading(true);
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
@@ -24,21 +24,21 @@ export default function LoginPage() {
       });
 
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+      toast.error('Failed to sign in with Google');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsLoading(true);
 
     try {
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -46,133 +46,126 @@ export default function LoginPage() {
           },
         });
 
-        if (error) throw error;
+        if (signUpError) throw signUpError;
         toast.success('Check your email for the confirmation link!');
         setIsSignUp(false);
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        return;
+      }
 
-        if (error) throw error;
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
+      if (signInError) throw signInError;
+
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
         // Check if user is super admin
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('is_super_admin')
-          .eq('id', data.user.id)
+          .eq('id', session.user.id)
           .single();
 
-        if (userError) throw userError;
+        if (userError) {
+          console.error('Error checking admin status:', userError);
+          toast.error('Error checking admin status');
+          return;
+        }
 
-        // Set up auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          if (event === 'SIGNED_IN') {
-            if (userData?.is_super_admin) {
-              router.push('/admin');
-            } else {
-              router.push('/dashboard');
-            }
-            toast.success('Successfully logged in!');
-          }
-        });
-
-        // Clean up subscription
-        return () => {
-          subscription.unsubscribe();
-        };
+        // Redirect based on admin status
+        if (userData?.is_super_admin) {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
       }
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(isSignUp ? 'Failed to sign up' : 'Failed to sign in');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0A1A2F] to-[#1A2B4F]">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0A1A2F] to-[#1A2B4F] p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl">
+          <h1 className="text-3xl font-bold text-white text-center mb-8">
             {isSignUp ? 'Create Account' : 'Welcome Back'}
           </h1>
-          <p className="text-gray-600">
-            {isSignUp ? 'Join SecureView today' : 'Please sign in to your account'}
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#00C6B3] focus:ring-[#00C6B3]"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#00C6B3] focus:ring-[#00C6B3]"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#00C6B3] text-white py-3 px-4 rounded-lg hover:bg-[#00a396] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-          >
-            {loading ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign in'}
-          </button>
-        </form>
-
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-white/5 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00C6B3] transition-all duration-300"
+                required
+              />
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-white/5 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#00C6B3] transition-all duration-300"
+                required
+              />
             </div>
-          </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-[#00C6B3] text-white py-2 px-4 rounded-lg hover:bg-[#00a396] transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
+            </button>
+          </form>
 
           <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-600"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-[#0A1A2F] text-gray-300">Or continue with</span>
+              </div>
+            </div>
+
             <button
               onClick={handleGoogleSignIn}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-lg py-3 px-4 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading}
+              className="mt-6 w-full flex items-center justify-center gap-3 bg-white/5 border border-gray-600 rounded-lg px-4 py-2 text-white hover:bg-white/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FcGoogle className="w-5 h-5" />
-              <span className="font-medium">Google</span>
+              Sign in with Google
             </button>
           </div>
-        </div>
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-sm text-[#00C6B3] hover:text-[#00a396] transition-colors"
-          >
-            {isSignUp
-              ? 'Already have an account? Sign in'
-              : "Don't have an account? Sign up"}
-          </button>
+          <p className="mt-6 text-center text-gray-300">
+            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-[#00C6B3] hover:text-[#00a396] transition-colors"
+            >
+              {isSignUp ? 'Sign in' : 'Sign up'}
+            </button>
+          </p>
         </div>
       </div>
     </div>
