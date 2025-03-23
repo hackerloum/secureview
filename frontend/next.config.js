@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
+  trailingSlash: true,
   images: {
     unoptimized: true,
     domains: ['res.cloudinary.com']
@@ -23,9 +24,6 @@ const nextConfig = {
   generateEtags: false,
   reactStrictMode: true,
   swcMinify: true,
-  assetPrefix: '/',
-  basePath: '',
-  distDir: 'out',
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
