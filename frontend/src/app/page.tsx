@@ -230,12 +230,12 @@ export default function Home() {
       </section>
 
       <section id="demo" className="demo">
-        <Image
+        <img
           src="/dashboard-preview.svg"
           alt="SecureView Dashboard Preview"
           width={800}
-          height={450}
-          className="demo-image"
+          height={600}
+          className="rounded-lg shadow-2xl mx-auto"
         />
       </section>
 
