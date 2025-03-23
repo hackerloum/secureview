@@ -7,21 +7,21 @@ export interface Database {
           email: string;
           created_at: string;
           last_sign_in: string;
-          is_admin: boolean;
+          is_super_admin: boolean;
         };
         Insert: {
           id?: string;
           email: string;
           created_at?: string;
           last_sign_in?: string;
-          is_admin?: boolean;
+          is_super_admin?: boolean;
         };
         Update: {
           id?: string;
           email?: string;
           created_at?: string;
           last_sign_in?: string;
-          is_admin?: boolean;
+          is_super_admin?: boolean;
         };
       };
       contents: {
