@@ -7,26 +7,10 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 
 const companies = [
-  { name: 'Microsoft', logo: '/logos/microsoft.svg' },
-  { name: 'Google', logo: '/logos/google.svg' },
-  { name: 'Amazon', logo: '/logos/amazon.svg' },
-  { name: 'Apple', logo: '/logos/apple.svg' },
-  { name: 'Meta', logo: '/logos/meta.svg' },
-  { name: 'Netflix', logo: '/logos/netflix.svg' },
-  { name: 'Adobe', logo: '/logos/adobe.svg' },
-  { name: 'Salesforce', logo: '/logos/salesforce.svg' },
-  { name: 'Oracle', logo: '/logos/oracle.svg' },
-  { name: 'IBM', logo: '/logos/ibm.svg' },
-  { name: 'Intel', logo: '/logos/intel.svg' },
-  { name: 'Cisco', logo: '/logos/cisco.svg' },
-  { name: 'Samsung', logo: '/logos/samsung.svg' },
-  { name: 'Sony', logo: '/logos/sony.svg' },
-  { name: 'Dell', logo: '/logos/dell.svg' },
-  { name: 'HP', logo: '/logos/hp.svg' },
-  { name: 'NVIDIA', logo: '/logos/nvidia.svg' },
-  { name: 'Qualcomm', logo: '/logos/qualcomm.svg' },
-  { name: 'VMware', logo: '/logos/vmware.svg' },
-  { name: 'Autodesk', logo: '/logos/autodesk.svg' },
+  'Microsoft', 'Google', 'Amazon', 'Apple', 'Meta',
+  'Netflix', 'Adobe', 'Salesforce', 'Oracle', 'IBM',
+  'Intel', 'Cisco', 'Samsung', 'Sony', 'Dell',
+  'HP', 'NVIDIA', 'Qualcomm', 'VMware', 'Autodesk'
 ];
 
 const securityPhrases = [
@@ -185,23 +169,20 @@ export default function Home() {
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
         <div className="max-w-6xl mx-auto relative">
           <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-12">Trusted By</h2>
-          <div className="relative h-[200px] overflow-hidden">
-            <div className="absolute inset-0 flex flex-col animate-scroll">
-              {[...companies, ...companies].map((company, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-center p-4 bg-white/10 rounded-xl backdrop-blur-sm hover:bg-white/20 transition-all duration-300 group"
-                >
-                  <div className="w-24 h-12 relative grayscale group-hover:grayscale-0 transition-all duration-300">
-                    <Image
-                      src={company.logo}
-                      alt={company.name}
-                      fill
-                      className="object-contain"
-                    />
+          <div className="relative h-[100px] overflow-hidden">
+            <div className="absolute inset-0 flex animate-scroll">
+              <div className="flex space-x-8 items-center">
+                {[...companies, ...companies].map((company, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-center px-6 py-3 bg-white/10 rounded-xl backdrop-blur-sm hover:bg-white/20 transition-all duration-300 group"
+                  >
+                    <span className="text-white font-medium group-hover:text-[#00C6B3] transition-colors">
+                      {company}
+                    </span>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
