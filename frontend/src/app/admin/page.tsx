@@ -38,7 +38,7 @@ interface User {
   last_sign_in: string;
   upload_limit: number;
   current_uploads: number;
-  is_admin: boolean;
+  is_super_admin: boolean;
 }
 
 interface Content {
@@ -91,14 +91,14 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Check if user is admin
+    // Check if user is super admin
     const { data: userData, error } = await supabase
       .from('users')
-      .select('is_admin')
+      .select('is_super_admin')
       .eq('id', user.id)
       .single();
 
-    if (error || !userData?.is_admin) {
+    if (error || !userData?.is_super_admin) {
       router.push('/dashboard');
       return;
     }
