@@ -66,13 +66,22 @@ export default function LoginPage() {
 
         if (userError) throw userError;
 
-        if (userData?.is_super_admin) {
-          router.push('/admin');
-        } else {
-          router.push('/dashboard');
-        }
+        // Set up auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (event === 'SIGNED_IN') {
+            if (userData?.is_super_admin) {
+              router.push('/admin');
+            } else {
+              router.push('/dashboard');
+            }
+            toast.success('Successfully logged in!');
+          }
+        });
 
-        toast.success('Successfully logged in!');
+        // Clean up subscription
+        return () => {
+          subscription.unsubscribe();
+        };
       }
     } catch (error: any) {
       toast.error(error.message);
