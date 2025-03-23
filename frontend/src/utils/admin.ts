@@ -7,7 +7,7 @@ export const checkAdminStatus = async () => {
 
     const { data, error } = await supabase
       .from('users')
-      .select('is_admin')
+      .select('is_super_admin')
       .eq('id', user.id)
       .single();
 
@@ -16,7 +16,7 @@ export const checkAdminStatus = async () => {
       return false;
     }
 
-    return data?.is_admin || false;
+    return data?.is_super_admin || false;
   } catch (error) {
     console.error('Error checking admin status:', error);
     return false;
