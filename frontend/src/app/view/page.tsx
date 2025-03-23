@@ -383,7 +383,7 @@ export default function ViewPage() {
     };
   }, []);
 
-  // Inactivity detection
+  // Modify the security check to allow scrolling
   useEffect(() => {
     const checkInactivity = () => {
       const currentTime = Date.now();
@@ -400,15 +400,23 @@ export default function ViewPage() {
 
     const interval = setInterval(checkInactivity, 10000); // Check every 10 seconds
     
+    // Add scroll event listener
+    const handleScroll = () => {
+      lastActivityTime.current = Date.now();
+      setIsBlurred(false);
+    };
+
     document.addEventListener('mousemove', resetActivity);
     document.addEventListener('keydown', resetActivity);
     document.addEventListener('touchstart', resetActivity);
+    document.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
       clearInterval(interval);
       document.removeEventListener('mousemove', resetActivity);
       document.removeEventListener('keydown', resetActivity);
       document.removeEventListener('touchstart', resetActivity);
+      document.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -491,74 +499,53 @@ export default function ViewPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div
-          ref={contentRef}
-          className={`relative bg-white rounded-lg overflow-hidden transition-all duration-300 ${
-            isBlurred ? 'blur-lg' : ''
-          }`}
-          style={{ 
-            userSelect: 'none', 
-            WebkitUserSelect: 'none',
-            WebkitTouchCallout: 'none',
-            msUserSelect: 'none',
-            touchAction: 'none',
-            filter: isRecording ? 'blur(20px)' : ''
-          }}
-        >
-          {/* Dynamic Watermarks */}
-          {watermarkPositions.current.map((pos, i) => (
-            <div
-              key={i}
-              className="absolute pointer-events-none select-none z-10"
-              style={{
-                left: `${pos.x}%`,
-                top: `${pos.y}%`,
-                transform: `rotate(${pos.rotation}deg) scale(${pos.scale || 1})`,
-                opacity: pos.opacity,
-                whiteSpace: 'nowrap',
-                textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                fontSize: pos.isSpecial ? '1rem' : '0.8rem',
-                fontWeight: 'bold',
-                color: pos.isSpecial ? '#ff0000' : '#00C6B3',
-                mixBlendMode: 'difference'
-              }}
-            >
-              {pos.isSpecial 
-                ? `SecureView • ${deviceFingerprint?.timezone}`
-                : `SecureView • ${sessionId.current} • ${content?.access_code}`
-              }
+      <main className="container mx-auto px-4 py-8">
+        {content && (
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              <div className="p-6">
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">{content.title}</h1>
+                <p className="text-gray-600 mb-6">{content.description}</p>
+                
+                <div 
+                  ref={contentRef}
+                  className={`relative ${isBlurred ? 'blur-sm' : ''}`}
+                  style={{ 
+                    maxHeight: '70vh',
+                    overflowY: 'auto',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#CBD5E0 #EDF2F7',
+                  }}
+                >
+                  <img
+                    src={content.image_url}
+                    alt={content.title}
+                    className="w-full h-auto object-contain"
+                    style={{ pointerEvents: 'none' }}
+                  />
+                  
+                  {/* Watermark overlay */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    {watermarkPositions.current.map((pos, index) => (
+                      <div
+                        key={index}
+                        className="absolute text-gray-300 opacity-20 select-none"
+                        style={{
+                          left: `${pos.x}%`,
+                          top: `${pos.y}%`,
+                          transform: `rotate(${pos.rotation}deg) scale(${pos.scale || 1})`,
+                          opacity: pos.opacity,
+                        }}
+                      >
+                        {deviceFingerprint?.browser.slice(0, 8)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
-
-          {/* Content with additional protection */}
-          <div className="aspect-w-16 aspect-h-9 relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/20 z-[5]" />
-            <img
-              src={content?.image_url}
-              alt={content?.title}
-              className="w-full h-full object-cover select-none"
-              draggable="false"
-              onContextMenu={(e) => e.preventDefault()}
-              style={{
-                pointerEvents: 'none',
-                WebkitTouchCallout: 'none',
-                position: 'relative',
-                zIndex: 1,
-                filter: 'contrast(1.05)',
-                mixBlendMode: 'normal'
-              }}
-            />
-            <div 
-              className="absolute inset-0 z-[2]" 
-              style={{ 
-                background: 'radial-gradient(circle at center, transparent 30%, rgba(0,198,179,0.03) 70%)',
-                mixBlendMode: 'overlay',
-                pointerEvents: 'none'
-              }} 
-            />
           </div>
-        </div>
+        )}
       </main>
 
       {/* Footer */}
