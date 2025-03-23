@@ -3,13 +3,45 @@
   publish = ".next"
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/_next/static/*"
+  to = "/_next/static/:splat"
   status = 200
+  force = true
+  headers = {X-Custom-Header = "static"}
+
+[[redirects]]
+  from = "/_next/*"
+  to = "/_next/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
 
 [build.environment]
   NEXT_PUBLIC_SUPABASE_URL = "https://jefvnmetxmksadywqfyy.supabase.co"
   NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplZnZubWV0eG1rc2FkeXdxZnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIyMzk1NTUsImV4cCI6MjA1NzgxNTU1NX0.aLQxFfiNffWbn7thDH12mOTy22wpl-nFb0JKwmW7puM"
+
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/javascript"
+
+[[headers]]
+  for = "/_next/static/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "text/css"
+
+[[headers]]
+  for = "/_next/static/media/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "font/woff2"
 
 [[headers]]
   for = "/*"
@@ -21,14 +53,4 @@
     Content-Security-Policy = "default-src 'self' https: wss:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https: wss:; frame-ancestors 'none';"
 
 [[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-[[redirects]]
-  from = "/_next/*"
-  to = "/_next/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/server"
-  status = 200 
+  package = "@netlify/plugin-nextjs" 
