@@ -23,14 +23,14 @@ export async function middleware(req: NextRequest) {
 
   // If there's a session and the user is trying to access admin routes
   if (session && req.nextUrl.pathname.startsWith('/admin')) {
-    // Check if user is admin
+    // Check if user is super admin
     const { data: userData, error } = await supabase
       .from('users')
-      .select('is_admin')
+      .select('is_super_admin')
       .eq('id', session.user.id)
       .single();
 
-    if (error || !userData?.is_admin) {
+    if (error || !userData?.is_super_admin) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
   }
