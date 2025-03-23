@@ -2,48 +2,47 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import supabase from '../../../lib/supabase';
+import { supabase } from '@/utils/supabase';
+import { toast } from 'react-hot-toast';
 
-export default function AuthCallbackPage() {
+export default function AuthCallback() {
   const router = useRouter();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        const code = new URLSearchParams(window.location.search).get('code');
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (!code) {
-          console.error('No code found in URL');
-          router.push('/?error=no_code');
-          return;
+        if (error) throw error;
+
+        if (session?.user) {
+          // Check if user is super admin
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('is_super_admin')
+            .eq('id', session.user.id)
+            .single();
+
+          if (userError) {
+            console.error('Error checking admin status:', userError);
+            toast.error('Error checking admin status');
+            router.push('/login');
+            return;
+          }
+
+          // Redirect based on admin status
+          if (userData?.is_super_admin) {
+            router.push('/admin');
+          } else {
+            router.push('/dashboard');
+          }
+        } else {
+          router.push('/login');
         }
-
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        
-        if (exchangeError) {
-          console.error('Exchange error:', exchangeError);
-          router.push('/?error=exchange_error');
-          return;
-        }
-
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          router.push('/?error=session_error');
-          return;
-        }
-
-        if (!session) {
-          console.error('No session found');
-          router.push('/?error=no_session');
-          return;
-        }
-
-        router.push('/dashboard');
       } catch (error) {
-        console.error('Auth callback error:', error);
-        router.push('/?error=auth_callback_error');
+        console.error('Error in auth callback:', error);
+        toast.error('Authentication error');
+        router.push('/login');
       }
     };
 
@@ -51,10 +50,10 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0A1A2F]">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00C6B3] mx-auto mb-4"></div>
-        <p className="text-white">Completing sign in...</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0A1A2F] to-[#1A2B4F]">
+      <div className="text-white text-center">
+        <h1 className="text-2xl font-bold mb-4">Completing authentication...</h1>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
       </div>
     </div>
   );
