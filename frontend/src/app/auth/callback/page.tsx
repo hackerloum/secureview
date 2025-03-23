@@ -21,22 +21,44 @@ export default function AuthCallback() {
           return;
         }
 
-        // Check if user is super admin
-        const { data: userData, error: userError } = await supabase
+        // Check if user exists in users table
+        const { data: existingUser, error: userError } = await supabase
           .from('users')
           .select('is_super_admin')
           .eq('id', session.user.id)
           .single();
 
-        if (userError) {
-          console.error('Error checking admin status:', userError);
-          toast.error('Error checking admin status');
+        if (userError && userError.code !== 'PGRST116') { // PGRST116 is "not found"
+          console.error('Error checking user:', userError);
+          toast.error('Error checking user status');
           router.replace('/login');
           return;
         }
 
+        // If user doesn't exist, create them
+        if (!existingUser) {
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert([
+              {
+                id: session.user.id,
+                email: session.user.email,
+                is_super_admin: false,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }
+            ]);
+
+          if (insertError) {
+            console.error('Error creating user:', insertError);
+            toast.error('Error creating user profile');
+            router.replace('/login');
+            return;
+          }
+        }
+
         // Redirect based on admin status
-        if (userData?.is_super_admin) {
+        if (existingUser?.is_super_admin) {
           router.replace('/admin');
         } else {
           router.replace('/dashboard');
