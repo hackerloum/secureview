@@ -151,8 +151,9 @@ export default function Dashboard() {
       // Fetch total views and content count
       const { data: viewsData, error: viewsError } = await supabase
         .from('content_views')
-        .select('content_id')
-        .eq('content_user_id', userId);
+        .select('created_at')
+        .eq('content_user_id', userId)
+        .gte('created_at', subDays(new Date(), 7).toISOString());
 
       const { data: contentsData, error: contentsError } = await supabase
         .from('contents')
@@ -161,7 +162,14 @@ export default function Dashboard() {
 
       if (viewsError || contentsError) throw viewsError || contentsError;
 
-      // Generate recent views data (last 7 days)
+      // Process views data by date
+      const viewsByDate = viewsData.reduce((acc: any, view) => {
+        const date = format(new Date(view.created_at), 'yyyy-MM-dd');
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+      }, {});
+
+      // Generate last 7 days with actual view counts
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const date = new Date();
         date.setDate(date.getDate() - i);
@@ -170,7 +178,7 @@ export default function Dashboard() {
 
       const recentViews = last7Days.map(date => ({
         date,
-        views: Math.floor(Math.random() * 50) // Replace with actual view counts from your database
+        views: viewsByDate[date] || 0
       }));
 
       setAnalytics({
@@ -180,6 +188,7 @@ export default function Dashboard() {
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);
+      toast.error('Failed to fetch analytics data');
     }
   };
 
@@ -272,17 +281,54 @@ export default function Dashboard() {
   };
 
   const fetchActivities = async (userId: string) => {
-    // In a real app, fetch from your database
-    const mockActivities: Activity[] = [
-      {
-        id: '1',
-        action: 'Copied access code',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        details: 'Content: Yoga Corner'
-      },
-      // Add more mock activities...
-    ];
-    setActivities(mockActivities);
+    try {
+      // Fetch recent views
+      const { data: viewsData, error: viewsError } = await supabase
+        .from('content_views')
+        .select(`
+          created_at,
+          contents (
+            title
+          )
+        `)
+        .eq('content_user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (viewsError) throw viewsError;
+
+      // Fetch recent content creation
+      const { data: contentsData, error: contentsError } = await supabase
+        .from('contents')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (contentsError) throw contentsError;
+
+      // Combine and format activities
+      const activities: Activity[] = [
+        ...viewsData.map(view => ({
+          id: `view-${view.created_at}`,
+          action: 'Content viewed',
+          timestamp: view.created_at,
+          details: `Content: ${view.contents?.title || 'Unknown'}`
+        })),
+        ...contentsData.map(content => ({
+          id: `content-${content.created_at}`,
+          action: 'Content created',
+          timestamp: content.created_at,
+          details: `Content: ${content.title}`
+        }))
+      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 10);
+
+      setActivities(activities);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      toast.error('Failed to fetch activity data');
+    }
   };
 
   const handleExport = async () => {
