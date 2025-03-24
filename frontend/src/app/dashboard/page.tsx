@@ -109,30 +109,33 @@ export default function Dashboard() {
 
     const setupDashboard = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (error || !session?.user) {
-          console.error('Session error:', error);
-          router.push('/');
+        if (!session?.user) {
+          if (mounted) {
+            router.push('/');
+          }
           return;
         }
 
         if (mounted) {
           setUser(session.user);
           
-          // Fetch dashboard data
-          await Promise.all([
+          // Fetch initial data
+          const [contentsResult, analyticsResult, activitiesResult] = await Promise.all([
             fetchContents(session.user.id),
             fetchAnalytics(session.user.id),
             fetchActivities(session.user.id)
           ]);
 
-          // Set default user limit based on current content count
-          const currentUploads = contents.length;
-          setUserLimit({
-            upload_limit: 5,
-            current_uploads: currentUploads
-          });
+          // Only update state if component is still mounted
+          if (mounted) {
+            // Set default user limit based on current content count
+            setUserLimit({
+              upload_limit: 5,
+              current_uploads: contentsResult?.length || 0
+            });
+          }
         }
       } catch (error) {
         console.error('Dashboard setup error:', error);
@@ -148,27 +151,35 @@ export default function Dashboard() {
 
     setupDashboard();
 
+    // Set up auth state change listener
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
-        router.push('/');
+        if (mounted) {
+          router.push('/');
+        }
         return;
       }
 
       if (session && mounted) {
         setUser(session.user);
-        Promise.all([
-          fetchContents(session.user.id),
-          fetchAnalytics(session.user.id),
-          fetchActivities(session.user.id)
-        ]).then(() => {
-          const currentUploads = contents.length;
-          setUserLimit({
-            upload_limit: 5,
-            current_uploads: currentUploads
-          });
-        });
+        try {
+          const [contentsResult] = await Promise.all([
+            fetchContents(session.user.id),
+            fetchAnalytics(session.user.id),
+            fetchActivities(session.user.id)
+          ]);
+
+          if (mounted) {
+            setUserLimit({
+              upload_limit: 5,
+              current_uploads: contentsResult?.length || 0
+            });
+          }
+        } catch (error) {
+          console.error('Error updating dashboard data:', error);
+        }
       }
     });
 
@@ -234,9 +245,15 @@ export default function Dashboard() {
         .order(sortBy, { ascending: sortOrder === 'asc' });
 
       if (error) throw error;
-      setContents(data || []);
+      
+      if (data) {
+        setContents(data);
+        return data;
+      }
+      return [];
     } catch (error) {
       console.error('Error fetching contents:', error);
+      return [];
     }
   };
 
