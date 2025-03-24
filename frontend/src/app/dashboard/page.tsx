@@ -105,67 +105,75 @@ export default function Dashboard() {
   const [userLimit, setUserLimit] = useState<UserLimit | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     const setupDashboard = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error) {
+        if (error || !session?.user) {
           console.error('Session error:', error);
           router.push('/');
           return;
         }
 
-        if (!session) {
-          router.push('/');
-          return;
+        if (mounted) {
+          setUser(session.user);
+          
+          // Fetch dashboard data
+          await Promise.all([
+            fetchContents(session.user.id),
+            fetchAnalytics(session.user.id),
+            fetchActivities(session.user.id)
+          ]);
+
+          // Set default user limit based on current content count
+          const currentUploads = contents.length;
+          setUserLimit({
+            upload_limit: 5,
+            current_uploads: currentUploads
+          });
         }
-
-        setUser(session.user);
-
-        // Fetch dashboard data
-        await Promise.all([
-          fetchContents(session.user.id),
-          fetchAnalytics(session.user.id),
-          fetchActivities(session.user.id)
-        ]);
-
-        // Set default user limit
-        setUserLimit({
-          upload_limit: 5,
-          current_uploads: 0
-        });
       } catch (error) {
         console.error('Dashboard setup error:', error);
-        router.push('/');
+        if (mounted) {
+          router.push('/');
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     setupDashboard();
 
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (event === 'SIGNED_OUT') {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
         router.push('/');
-      } else if (session) {
+        return;
+      }
+
+      if (session && mounted) {
         setUser(session.user);
-        // Use .then() instead of await since we're not in an async function
         Promise.all([
           fetchContents(session.user.id),
           fetchAnalytics(session.user.id),
           fetchActivities(session.user.id)
         ]).then(() => {
-          // Update user limit after content is fetched
+          const currentUploads = contents.length;
           setUserLimit({
             upload_limit: 5,
-            current_uploads: contents.length
+            current_uploads: currentUploads
           });
         });
       }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [router]);
