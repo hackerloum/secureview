@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/utils/supabase';
+import { supabase, supabaseAdmin } from '@/utils/supabase';
 import { toast } from 'react-hot-toast';
 
 export default function AuthCallback() {
@@ -37,7 +37,7 @@ export default function AuthCallback() {
 
         // If user doesn't exist, create them
         if (!existingUser) {
-          const { error: insertError } = await supabase
+          const { error: insertError } = await supabaseAdmin
             .from('users')
             .insert([
               {
