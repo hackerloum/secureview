@@ -121,30 +121,19 @@ export default function Dashboard() {
         }
 
         setUser(session.user);
-        
-        // Get user profile data from profiles table instead of users
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError) {
-          console.error('Profile error:', profileError);
-          toast.error('Failed to load user profile');
-          return;
-        }
-
-        // Set user data including profile info
-        setUser({ ...session.user, ...profileData });
 
         // Fetch dashboard data
         await Promise.all([
           fetchContents(session.user.id),
           fetchAnalytics(session.user.id),
-          fetchActivities(session.user.id),
-          fetchUserLimit(session.user.id)
+          fetchActivities(session.user.id)
         ]);
+
+        // Set default user limit
+        setUserLimit({
+          upload_limit: 5,
+          current_uploads: 0
+        });
       } catch (error) {
         console.error('Dashboard setup error:', error);
         router.push('/');
@@ -156,26 +145,23 @@ export default function Dashboard() {
     setupDashboard();
 
     // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_OUT') {
         router.push('/');
       } else if (session) {
-        // Get user profile data
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        setUser({ ...session.user, ...profileData });
-        
-        // Fetch dashboard data
-        await Promise.all([
+        setUser(session.user);
+        // Use .then() instead of await since we're not in an async function
+        Promise.all([
           fetchContents(session.user.id),
           fetchAnalytics(session.user.id),
-          fetchActivities(session.user.id),
-          fetchUserLimit(session.user.id)
-        ]);
+          fetchActivities(session.user.id)
+        ]).then(() => {
+          // Update user limit after content is fetched
+          setUserLimit({
+            upload_limit: 5,
+            current_uploads: contents.length
+          });
+        });
       }
     });
 
@@ -260,7 +246,8 @@ export default function Dashboard() {
     e.preventDefault();
     if (!uploadData.file || !user) return;
 
-    if (userLimit && userLimit.current_uploads >= userLimit.upload_limit) {
+    const currentUploads = contents.length;
+    if (currentUploads >= 5) {
       toast.error('You have reached your upload limit. Please contact us on WhatsApp at +255772484738 to increase your limit.');
       return;
     }
@@ -286,9 +273,15 @@ export default function Dashboard() {
       await fetchAnalytics(user.id);
       setShowUploadModal(false);
       setUploadData({ title: '', description: '', file: null });
-      fetchUserLimit(user.id);
+      
+      // Update user limit based on content count
+      setUserLimit({
+        upload_limit: 5,
+        current_uploads: contents.length + 1
+      });
     } catch (error) {
       console.error('Error uploading:', error);
+      toast.error('Upload failed');
     } finally {
       setLoading(false);
       setLoadingState('initial');
@@ -404,27 +397,6 @@ export default function Dashboard() {
         tension: 0.1,
       },
     ],
-  };
-
-  const fetchUserLimit = async (userId: string) => {
-    try {
-      // Get user limits from profiles table instead of separate API call
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('upload_limit, current_uploads')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-
-      setUserLimit({
-        upload_limit: data.upload_limit || 5, // Default limit of 5 if not set
-        current_uploads: data.current_uploads || 0
-      });
-    } catch (error) {
-      console.error('Error fetching user limit:', error);
-      toast.error('Error fetching upload limit');
-    }
   };
 
   if (loading) {
