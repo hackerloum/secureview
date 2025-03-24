@@ -21,6 +21,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { format, subDays, parseISO } from 'date-fns';
 import { saveAs } from 'file-saver';
 import toast from 'react-hot-toast';
+import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 ChartJS.register(
   CategoryScale,
@@ -33,6 +34,14 @@ ChartJS.register(
   Legend,
   TimeScale
 );
+
+// Type definitions
+interface ViewCount {
+  created_at: string;
+  contents: {
+    title: string;
+  }[];
+}
 
 interface Content {
   id: string;
@@ -128,12 +137,12 @@ export default function Dashboard() {
     setupDashboard();
 
     // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_OUT') {
         router.push('/');
       } else if (session) {
         setUser(session.user);
-        await Promise.all([
+        Promise.all([
           fetchContents(session.user.id),
           fetchAnalytics(session.user.id),
           fetchUserLimit()
@@ -163,8 +172,8 @@ export default function Dashboard() {
       if (viewsError || contentsError) throw viewsError || contentsError;
 
       // Process views data by date
-      const viewsByDate = viewsData.reduce((acc: any, view) => {
-        const date = format(new Date(view.created_at), 'yyyy-MM-dd');
+      const viewsByDate = (viewsData || []).reduce<Record<string, number>>((acc, view: ViewCount) => {
+        const date = format(parseISO(view.created_at), 'yyyy-MM-dd');
         acc[date] = (acc[date] || 0) + 1;
         return acc;
       }, {});
@@ -308,21 +317,12 @@ export default function Dashboard() {
       if (contentsError) throw contentsError;
 
       // Combine and format activities
-      const activities: Activity[] = [
-        ...viewsData.map(view => ({
-          id: `view-${view.created_at}`,
-          action: 'Content viewed',
-          timestamp: view.created_at,
-          details: `Content: ${view.contents?.title || 'Unknown'}`
-        })),
-        ...contentsData.map(content => ({
-          id: `content-${content.created_at}`,
-          action: 'Content created',
-          timestamp: content.created_at,
-          details: `Content: ${content.title}`
-        }))
-      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 10);
+      const activities: Activity[] = (viewsData || []).map((view: ViewCount) => ({
+        id: crypto.randomUUID(),
+        action: 'View',
+        timestamp: view.created_at,
+        details: `Viewed content: ${view.contents[0]?.title || 'Unknown'}`
+      }));
 
       setActivities(activities);
     } catch (error) {
