@@ -102,61 +102,62 @@ export default function LoginPage() {
         return;
       }
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) throw signInError;
 
-      // Get the current session
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        // Check if user exists in users table
-        const { data: existingUser, error: userError } = await supabase
-          .from('users')
-          .select('is_super_admin')
-          .eq('id', session.user.id)
-          .single();
+      if (!data.session) {
+        throw new Error('No session created after sign in');
+      }
 
-        if (userError && userError.code !== 'PGRST116') { // PGRST116 is "not found"
-          console.error('Error checking user:', userError);
-          toast.error('Error checking user status');
+      // Check if user exists in users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('is_super_admin')
+        .eq('id', data.session.user.id)
+        .single();
+
+      if (userError && userError.code !== 'PGRST116') {
+        console.error('Error checking user:', userError);
+        toast.error('Error checking user status');
+        return;
+      }
+
+      // If user doesn't exist, create them
+      if (!userData) {
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: data.session.user.id,
+              email: data.session.user.email,
+              is_super_admin: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          ]);
+
+        if (insertError) {
+          console.error('Error creating user:', insertError);
+          toast.error('Error creating user profile');
           return;
         }
-
-        // If user doesn't exist, create them
-        if (!existingUser) {
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert([
-              {
-                id: session.user.id,
-                email: session.user.email,
-                is_super_admin: false,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              }
-            ]);
-
-          if (insertError) {
-            console.error('Error creating user:', insertError);
-            toast.error('Error creating user profile');
-            return;
-          }
-        }
-
-        // Redirect based on admin status
-        if (existingUser?.is_super_admin) {
-          router.replace('/admin');
-        } else {
-          router.replace('/dashboard');
-        }
       }
-    } catch (error) {
+
+      toast.success('Successfully signed in!');
+
+      // Redirect based on admin status
+      if (userData?.is_super_admin) {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
       console.error('Error:', error);
-      toast.error(isSignUp ? 'Failed to sign up' : 'Failed to sign in');
+      toast.error(error.message || (isSignUp ? 'Failed to sign up' : 'Failed to sign in'));
     } finally {
       setIsLoading(false);
     }
