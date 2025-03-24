@@ -121,11 +121,29 @@ export default function Dashboard() {
         }
 
         setUser(session.user);
+        
+        // Get user profile data from profiles table instead of users
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Profile error:', profileError);
+          toast.error('Failed to load user profile');
+          return;
+        }
+
+        // Set user data including profile info
+        setUser({ ...session.user, ...profileData });
+
+        // Fetch dashboard data
         await Promise.all([
           fetchContents(session.user.id),
           fetchAnalytics(session.user.id),
           fetchActivities(session.user.id),
-          fetchUserLimit()
+          fetchUserLimit(session.user.id)
         ]);
       } catch (error) {
         console.error('Dashboard setup error:', error);
@@ -138,16 +156,25 @@ export default function Dashboard() {
     setupDashboard();
 
     // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_OUT') {
         router.push('/');
       } else if (session) {
-        setUser(session.user);
-        Promise.all([
+        // Get user profile data
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        setUser({ ...session.user, ...profileData });
+        
+        // Fetch dashboard data
+        await Promise.all([
           fetchContents(session.user.id),
           fetchAnalytics(session.user.id),
           fetchActivities(session.user.id),
-          fetchUserLimit()
+          fetchUserLimit(session.user.id)
         ]);
       }
     });
@@ -259,7 +286,7 @@ export default function Dashboard() {
       await fetchAnalytics(user.id);
       setShowUploadModal(false);
       setUploadData({ title: '', description: '', file: null });
-      fetchUserLimit();
+      fetchUserLimit(user.id);
     } catch (error) {
       console.error('Error uploading:', error);
     } finally {
@@ -379,15 +406,21 @@ export default function Dashboard() {
     ],
   };
 
-  const fetchUserLimit = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
+  const fetchUserLimit = async (userId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user-limits/${user.id}`);
-      if (!response.ok) throw new Error('Failed to fetch user limit');
-      const data = await response.json();
-      setUserLimit(data);
+      // Get user limits from profiles table instead of separate API call
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('upload_limit, current_uploads')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      setUserLimit({
+        upload_limit: data.upload_limit || 5, // Default limit of 5 if not set
+        current_uploads: data.current_uploads || 0
+      });
     } catch (error) {
       console.error('Error fetching user limit:', error);
       toast.error('Error fetching upload limit');
