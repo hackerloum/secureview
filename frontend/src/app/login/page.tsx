@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, supabaseAdmin } from '@/utils/supabase';
+import { supabase } from '@/utils/supabase';
 import { toast } from 'react-hot-toast';
 import { FcGoogle } from 'react-icons/fc';
 
@@ -32,7 +32,7 @@ export default function LoginPage() {
 
         // If user doesn't exist, create them
         if (!existingUser) {
-          const { error: insertError } = await supabaseAdmin
+          const { error: insertError } = await supabase
             .from('users')
             .insert([
               {
@@ -128,7 +128,7 @@ export default function LoginPage() {
 
         // If user doesn't exist, create them
         if (!existingUser) {
-          const { error: insertError } = await supabaseAdmin
+          const { error: insertError } = await supabase
             .from('users')
             .insert([
               {
