@@ -124,6 +124,7 @@ export default function Dashboard() {
         await Promise.all([
           fetchContents(session.user.id),
           fetchAnalytics(session.user.id),
+          fetchActivities(session.user.id),
           fetchUserLimit()
         ]);
       } catch (error) {
@@ -145,6 +146,7 @@ export default function Dashboard() {
         Promise.all([
           fetchContents(session.user.id),
           fetchAnalytics(session.user.id),
+          fetchActivities(session.user.id),
           fetchUserLimit()
         ]);
       }
@@ -157,47 +159,48 @@ export default function Dashboard() {
 
   const fetchAnalytics = async (userId: string) => {
     try {
-      // Fetch total views and content count
       const { data: viewsData, error: viewsError } = await supabase
         .from('content_views')
-        .select('created_at')
-        .eq('content_user_id', userId)
+        .select(`
+          created_at,
+          contents (
+            title
+          )
+        `)
+        .eq('user_id', userId)
         .gte('created_at', subDays(new Date(), 7).toISOString());
 
       const { data: contentsData, error: contentsError } = await supabase
         .from('contents')
-        .select('created_at')
+        .select('*')
         .eq('user_id', userId);
 
       if (viewsError || contentsError) throw viewsError || contentsError;
 
-      // Process views data by date
+      // Process views by date
       const viewsByDate = (viewsData || []).reduce<Record<string, number>>((acc, view: ViewCount) => {
         const date = format(parseISO(view.created_at), 'yyyy-MM-dd');
         acc[date] = (acc[date] || 0) + 1;
         return acc;
       }, {});
 
-      // Generate last 7 days with actual view counts
+      // Get last 7 days of data
       const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        return date.toISOString().split('T')[0];
+        const date = format(subDays(new Date(), i), 'yyyy-MM-dd');
+        return {
+          date,
+          views: viewsByDate[date] || 0
+        };
       }).reverse();
-
-      const recentViews = last7Days.map(date => ({
-        date,
-        views: viewsByDate[date] || 0
-      }));
 
       setAnalytics({
         totalViews: viewsData?.length || 0,
         totalContent: contentsData?.length || 0,
-        recentViews
+        recentViews: last7Days
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);
-      toast.error('Failed to fetch analytics data');
+      toast.error('Failed to load analytics');
     }
   };
 
@@ -291,7 +294,6 @@ export default function Dashboard() {
 
   const fetchActivities = async (userId: string) => {
     try {
-      // Fetch recent views
       const { data: viewsData, error: viewsError } = await supabase
         .from('content_views')
         .select(`
@@ -300,23 +302,12 @@ export default function Dashboard() {
             title
           )
         `)
-        .eq('content_user_id', userId)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(10);
 
       if (viewsError) throw viewsError;
 
-      // Fetch recent content creation
-      const { data: contentsData, error: contentsError } = await supabase
-        .from('contents')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (contentsError) throw contentsError;
-
-      // Combine and format activities
       const activities: Activity[] = (viewsData || []).map((view: ViewCount) => ({
         id: crypto.randomUUID(),
         action: 'View',
@@ -327,7 +318,7 @@ export default function Dashboard() {
       setActivities(activities);
     } catch (error) {
       console.error('Error fetching activities:', error);
-      toast.error('Failed to fetch activity data');
+      toast.error('Failed to load activities');
     }
   };
 
