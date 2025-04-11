@@ -15,9 +15,56 @@ export default function LoginPage() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        router.replace('/dashboard');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // Check if user exists in users table
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('is_super_admin')
+            .eq('id', session.user.id)
+            .single();
+          
+          // If user doesn't exist in the users table, create them
+          if (userError && userError.code === 'PGRST116') { // "not found"
+            const { error: insertError } = await supabase
+              .from('users')
+              .insert([
+                {
+                  id: session.user.id,
+                  email: session.user.email,
+                  is_super_admin: false,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }
+              ]);
+            
+            if (insertError) {
+              console.error('Error creating user:', insertError);
+              toast.error('Error creating user profile');
+              return;
+            }
+            
+            // Redirect to dashboard after creating user
+            router.replace('/dashboard');
+            return;
+          }
+          
+          // If there was a different error
+          if (userError && userError.code !== 'PGRST116') {
+            console.error('Error checking user:', userError);
+            return;
+          }
+          
+          // Redirect based on admin status
+          if (userData?.is_super_admin) {
+            router.replace('/admin');
+          } else {
+            router.replace('/dashboard');
+          }
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
       }
     };
 
@@ -75,7 +122,41 @@ export default function LoginPage() {
       }
 
       toast.success('Successfully signed in!');
-      router.push('/dashboard');
+      
+      // Check if user exists in users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('is_super_admin')
+        .eq('id', data.session.user.id)
+        .single();
+      
+      // If user doesn't exist in the users table, create them
+      if (userError && userError.code === 'PGRST116') { // "not found"
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: data.session.user.id,
+              email: data.session.user.email,
+              is_super_admin: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          ]);
+        
+        if (insertError) {
+          console.error('Error creating user:', insertError);
+          toast.error('Error creating user profile');
+          return;
+        }
+      }
+      
+      // Redirect based on admin status
+      if (userData?.is_super_admin) {
+        router.replace('/admin');
+      } else {
+        router.replace('/dashboard');
+      }
     } catch (error: any) {
       console.error('Error:', error);
       toast.error(error.message || (isSignUp ? 'Failed to sign up' : 'Failed to sign in'));
