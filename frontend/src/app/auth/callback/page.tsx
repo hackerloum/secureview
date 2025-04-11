@@ -14,12 +14,21 @@ export default function AuthCallback() {
         // Get the current session
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error) throw error;
-
-        if (!session?.user) {
+        if (error) {
+          console.error('Session error:', error);
+          toast.error('Authentication error');
           router.replace('/login');
           return;
         }
+
+        if (!session?.user) {
+          console.error('No session found');
+          toast.error('No session found');
+          router.replace('/login');
+          return;
+        }
+
+        console.log('Session found:', session.user.email);
 
         // Check if user exists in users table
         const { data: existingUser, error: userError } = await supabase
@@ -36,7 +45,8 @@ export default function AuthCallback() {
         }
 
         // If user doesn't exist, create them
-        if (!existingUser) {
+        if (!existingUser || userError?.code === 'PGRST116') {
+          console.log('Creating new user');
           const { error: insertError } = await supabase
             .from('users')
             .insert([
@@ -55,12 +65,20 @@ export default function AuthCallback() {
             router.replace('/login');
             return;
           }
+          
+          // Successfully created user, redirect to dashboard
+          console.log('User created successfully, redirecting to dashboard');
+          toast.success('Account created successfully!');
+          router.replace('/dashboard');
+          return;
         }
 
         // Redirect based on admin status
         if (existingUser?.is_super_admin) {
+          console.log('Admin user, redirecting to admin panel');
           router.replace('/admin');
         } else {
+          console.log('Regular user, redirecting to dashboard');
           router.replace('/dashboard');
         }
       } catch (error) {
